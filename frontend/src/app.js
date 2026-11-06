@@ -78,9 +78,9 @@ async function startApp() {
   const me = await api('/api/me');
   state.user = me.user;
   $('#auth-view').hidden = true; $('#app-view').hidden = false; document.body.classList.add('in-app');
-  $('#top-date').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
   $('#avatar').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>';
   $('#menu-name').textContent = state.user.name;
+  state.telegram = !!me.telegram;
   $('#tg-open').hidden = !me.telegram;
   await loadPosts();
   checkReturn();
@@ -159,6 +159,48 @@ const ICON = {
   daily: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8.5"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M37.4 10.6l-4.2 4.2M14.8 33.2l-4.2 4.2"/></svg>',
   long: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 8h18v10a9 9 0 0 1-18 0V8z"/><path d="M15 12H8c0 6 3 9 7 9M33 12h7c0 6-3 9-7 9M24 27v8M17 41h14M19 35h10"/></svg>',
 };
+
+// Hero art drawn in SVG: floodlit stadium, striped pitch and a gold football. (No photos, so nothing to license.)
+const STADIUM = `<svg viewBox="0 0 420 340" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+  <defs>
+    <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#030A22"/><stop offset=".55" stop-color="#0A2060"/><stop offset="1" stop-color="#0B2C7A"/></linearGradient>
+    <linearGradient id="pt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1C7A2E"/><stop offset="1" stop-color="#0A3D17"/></linearGradient>
+    <radialGradient id="bl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFE27A"/><stop offset=".55" stop-color="#F5B400"/><stop offset="1" stop-color="#9A6400"/></radialGradient>
+    <radialGradient id="gl"><stop offset="0" stop-color="#FFD24A" stop-opacity=".55"/><stop offset="1" stop-color="#FFD24A" stop-opacity="0"/></radialGradient>
+    <filter id="bz"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <pattern id="cr" width="9" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="#6EA2FF" opacity=".35"/><circle cx="6.5" cy="5" r=".9" fill="#FFD24A" opacity=".22"/></pattern>
+  </defs>
+  <rect width="420" height="340" fill="url(#sk)"/>
+  <path d="M0 112C90 84 330 84 420 112V196H0z" fill="#07163F"/><path d="M0 112C90 84 330 84 420 112V196H0z" fill="url(#cr)"/>
+  <path d="M0 112C90 84 330 84 420 112" fill="none" stroke="#7FB0FF" stroke-opacity=".4" stroke-width="1.5"/>
+  <g filter="url(#bz)" fill="#fff">${Array.from({ length: 22 }, (_, i) => { const x = 14 + i * 18.6, y = 70 + Math.abs(i - 10.5) * 1.5; return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.1"/><circle cx="${x.toFixed(1)}" cy="${(y + 9).toFixed(1)}" r="2.4"/>`; }).join('')}</g>
+  <path d="M0 196h420v144H0z" fill="url(#pt)"/>
+  ${Array.from({ length: 7 }, (_, i) => `<path d="M${-60 + i * 80} 196h40l${(i - 3) * 22 + 40} 144h-60z" fill="#fff" opacity=".05"/>`).join('')}
+  <ellipse cx="210" cy="262" rx="150" ry="30" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/><path d="M0 262h420" stroke="#fff" stroke-opacity=".25" stroke-width="2"/>
+  <circle cx="372" cy="214" r="110" fill="url(#gl)"/>
+  <g transform="translate(374 214) scale(.85)"><circle r="64" fill="url(#bl)"/>
+    <path d="M0-22l21 15-8 25H-13l-8-25z" fill="#2A1A00" opacity=".85"/>
+    <path d="M0-22V-64M21-7l40-13M13 18l24 34M-13 18l-24 34M-21-7l-40-13" stroke="#2A1A00" stroke-width="3" opacity=".6"/>
+    <path d="M-44-46l10 12-12 8-8-14zM44-46l-10 12 12 8 8-14zM0 64l-14-8 4-14h20l4 14z" fill="#2A1A00" opacity=".7"/></g>
+</svg>`;
+const BALL = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="lb" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FFE27A"/><stop offset=".6" stop-color="#F5B400"/><stop offset="1" stop-color="#9A6400"/></radialGradient></defs>
+  <circle cx="32" cy="32" r="29" fill="url(#lb)" stroke="#2A1A00" stroke-width="2.5"/><path d="M32 21l9 6.5-3.5 10.5h-11L23 27.5z" fill="#2A1A00"/>
+  <path d="M32 21V4M41 27.5l16-5M37.5 38l10 14M26.5 38l-10 14M23 27.5l-16-5" stroke="#2A1A00" stroke-width="2.4" fill="none"/></svg>`;
+const SI = {
+  clip: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM7 5.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5V7A1.5 1.5 0 0 0 18 5.5h-1"/><path d="M8.5 12h7M8.5 16h4"/></svg>',
+  cup: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 8h18v10a9 9 0 0 1-18 0V8z"/><path d="M15 12H8c0 6 3 9 7 9M33 12h7c0 6-3 9-7 9M24 27v8M17 41h14M19 35h10"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/></svg>',
+  bars: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20V9"/></svg>',
+  hand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11V5a1.6 1.6 0 0 1 3.2 0v5l4.3.8a2 2 0 0 1 1.6 2.3l-.9 5.2a2 2 0 0 1-2 1.7H10a2 2 0 0 1-1.6-.8L5 14.6a1.5 1.5 0 0 1 2.3-1.9L9 14z"/></svg>',
+  mark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-5-4-5 4z"/></svg>',
+  tick: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/></svg>',
+};
+// SVG gradients are looked up by id across the whole page, and one copy sits in a hidden view, so every copy gets its own ids.
+let uid = 0;
+const uniq = svg => { const p = 'u' + (++uid) + '-'; return svg.replace(/id="([\w-]+)"/g, `id="${p}$1"`).replace(/url\(#([\w-]+)\)/g, `url(#${p}$1)`); };
+$$('.stadium-slot').forEach(el => { el.innerHTML = uniq(STADIUM); });
+$$('.ball-logo').forEach(el => { el.innerHTML = uniq(BALL); });
+
 const initials = n => n.replace(/[^A-Za-z0-9 .]/g, '').split(/[ .]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
 // "Closes in 5h 12m"
@@ -209,32 +251,68 @@ function renderPosts() {
   let i = 0;
   const first = !renderPosts.done; renderPosts.done = true;
   $('#posts').className = first ? 'enter' : '';
+  const today = new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   $('#posts').innerHTML = `
     <section class="hero">
-      <p class="hello">${greeting()}${state.premium.active ? `<span class="vip-badge">${ICON.vip}Premium until ${esc(new Date(state.premium.until).toLocaleDateString([], { day: 'numeric', month: 'short' }))}</span>` : ''}</p>
-      <h1>${live ? `${live} live slip${live === 1 ? '' : 's'}<br>ready to load` : 'Your next slip<br>lands here'}</h1>
-      <div class="board" role="group" aria-label="Today at a glance">
-        <div><b>${live}</b><span>Live slips</span></div>
-        <div><b>${state.platforms.length}</b><span>Bookmakers</span></div>
-        <div><b class="clock" ${next ? `data-expires="${esc(next)}" data-short` : ''}>${next ? shortLeft(next) : '—'}</b><span>${next ? 'Until today\'s code clears' : 'Waiting for a code'}</span></div>
+      <div class="stadium">${uniq(STADIUM)}</div>
+      <div class="hero-copy">
+        <p class="hello">${greeting()},${state.premium.active ? `<span class="vip-badge">${ICON.vip}Premium until ${esc(new Date(state.premium.until).toLocaleDateString([], { day: 'numeric', month: 'short' }))}</span>` : ''}</p>
+        <h1>${live ? `${live} live slip${live === 1 ? '' : 's'}<br><em>ready</em> to load` : 'Your next slip<br><em>lands</em> here'}</h1>
+        <p class="hero-sub">${live ? "Don't miss today's winning opportunities!" : "We'll show the next booking code here as soon as it's posted."}</p>
+        ${live ? '<button type="button" class="hero-cta" data-scroll="slips">View Slips <i aria-hidden="true">→</i></button>' : ''}
       </div>
     </section>
-    <h2 class="rail">Today's booking code</h2>
+    <div class="board" role="group" aria-label="Today at a glance">
+      <div><span class="bi blue">${SI.clip}</span><b>${live}</b><span>Live slips</span></div>
+      <div><span class="bi gold">${SI.cup}</span><b>${state.platforms.length}</b><span>Bookmakers</span></div>
+      <div><span class="bi blue">${SI.clock}</span><b class="clock" ${next ? `data-expires="${esc(next)}" data-short` : ''}>${next ? shortLeft(next) : '—'}</b><span>${next ? "Until today's code closes" : 'Waiting for a code'}</span></div>
+    </div>
+    <div id="slips"></div>
+    <h2 class="rail"><span>Today's Booking Code</span><time>${esc(today)}</time></h2>
     <div class="tickets">${daily.length ? daily.map(p => postCard(p, i++)).join('') : ghostTicket('daily')}</div>
-    ${vip.length || state.premium.plans.length ? `<h2 class="rail rail-vip">${ICON.vip}Premium odds</h2>
+    ${vip.length || state.premium.plans.length ? `<h2 class="rail rail-vip"><span>${ICON.vip}Premium Odds</span></h2>
       <div class="tickets">${vip.length ? vip.map(p => postCard(p, i++)).join('') : ghostTicket('vip')}</div>` : ''}
-    <h2 class="rail">Long bet booking code</h2>
+    <h2 class="rail"><span><i class="rail-ico">${SI.bars}</i>Long Bet Booking Code</span></h2>
     <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div>
     ${vipBanner()}
     <section class="how" aria-labelledby="how-h">
-      <h2 id="how-h">Load a code in three steps</h2>
+      <h2 id="how-h">Load a Code <span>in Three Simple Steps</span></h2>
       <ol>
-        <li><b>Tap a slip</b><span>Today's code or a long bet.</span></li>
-        <li><b>Pick your bookmaker</b><span>You only see codes for the company you bet with.</span></li>
-        <li><b>Paste it on the betslip</b><span>Copy the code, open your app, and load it.</span></li>
+        <li><i class="step-n">1</i>${SI.hand}<b>Tap a slip</b><span>Today's code or a long bet.</span></li>
+        <li><i class="step-n">2</i>${SI.mark}<b>Pick your bookmaker</b><span>You only see codes for the company you bet with.</span></li>
+        <li><i class="step-n">3</i>${SI.tick}<b>Paste it on the betslip</b><span>Copy the code, open your app, and load it.</span></li>
       </ol>
     </section>`;
+  updateBell();
 }
+
+// Bell: counts live slips you haven't opened since the last time you tapped it.
+const seenIds = () => { try { return JSON.parse(localStorage.getItem('oddsday_seen') || '[]'); } catch { return []; } };
+function updateBell() {
+  const seen = seenIds(), n = state.posts.filter(p => !p.locked && !seen.includes(p.id)).length, b = $('#bell-n');
+  b.hidden = !n; b.textContent = n > 9 ? '9+' : n;
+}
+$('#bell').addEventListener('click', () => {
+  const n = state.posts.filter(p => !p.locked && !seenIds().includes(p.id)).length;
+  try { localStorage.setItem('oddsday_seen', JSON.stringify(state.posts.map(p => p.id))); } catch { /* storage blocked */ }
+  updateBell();
+  toast(n ? `${n} new code${n === 1 ? '' : 's'} below` : 'No new codes right now');
+  $('#slips').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// Bottom tab bar.
+document.querySelector('.dock').addEventListener('click', e => {
+  const b = e.target.closest('[data-dock]'); if (!b) return;
+  e.stopPropagation(); // the page closes the menu on any outside click
+  const to = b.dataset.dock;
+  $$('.dock button').forEach(x => x.classList.toggle('on', x === b && to !== 'account' && to !== 'alerts'));
+  if (to === 'account' || to === 'alerts') document.querySelector('.dock [data-dock="home"]').classList.add('on');
+  if (to === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (to === 'premium') openPremium();
+  if (to === 'alerts') { if (state.telegram) $('#tg-open').click(); else toast('Telegram alerts are not set up yet.'); }
+  if (to === 'account') $('#menu-btn').click();
+});
+document.addEventListener('click', e => { const s = e.target.closest('[data-scroll]'); if (s) $('#slips').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 function shortLeft(iso) { const ms = new Date(iso) - Date.now(); if (ms <= 0) return '0m'; const m = Math.floor(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`; }
 // Keep the countdowns ticking.
 setInterval(() => $$('[data-expires]').forEach(el => { el.textContent = el.hasAttribute('data-short') ? shortLeft(el.dataset.expires) : remaining(el.dataset.expires); }), 20000);

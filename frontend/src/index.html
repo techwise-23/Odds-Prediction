@@ -8,25 +8,27 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OddsDay">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23F7E08E'/%3E%3Cstop offset='.5' stop-color='%23D4AF37'/%3E%3Cstop offset='1' stop-color='%23A97F1C'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%230B2466'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='url(%23g)' stroke-width='6'/%3E%3Cpath d='M32 13v38M13 32h38' stroke='url(%23g)' stroke-width='3' opacity='.5'/%3E%3C/svg%3E">
-  <title>OddsDay — daily football predictions</title>
-  <meta name="theme-color" content="#0B2466">
+  <title>OddsDay — booking codes</title>
+  <meta name="theme-color" content="#050E2B">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600;700&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="night">
   <!-- Logged-out view: landing page with sign up / log in -->
   <section id="auth-view" class="land" hidden>
+    <div class="stadium-slot" aria-hidden="true"></div>
     <header class="land-top">
-      <div class="logo">Odds<span>Day</span></div>
+      <div class="brand"><span class="ball-logo" aria-hidden="true"></span>
+        <div class="brand-text"><div class="logo">Odds<span>Day</span></div><small>Play Smart, Win Big</small></div></div>
       <span class="age-chip">18+</span>
     </header>
     <div class="land-grid">
       <div class="land-hero">
-        <p class="eyebrow"><i></i>Booking codes</p>
+        <p class="hello">Welcome to OddsDay</p>
         <h1>Your slip is ready.<br><em>Just load it.</em></h1>
-        <p class="lede">Fresh booking codes for SportyBet, MSport, Football.com and Betway. Choose your bookmaker, copy the code and load it on your betslip.</p>
+        <p class="lede">Fresh booking codes for SportyBet, MSport, Football.com and Betway. Pick your bookmaker, copy the code, load it on your betslip.</p>
       </div>
 
       <form id="auth-form" class="auth-card" novalidate>
@@ -45,22 +47,18 @@
         <p class="form-error" role="alert"></p>
         <button class="btn-primary" type="submit">Sign up</button>
         <p class="auth-alt"><span id="auth-alt-text">Already have an account?</span> <button type="button" class="link" id="auth-alt">Log in</button></p>
-        <p class="fineprint">By continuing you confirm you are 18 or older. Predictions are estimates, not guarantees.</p>
+        <p class="fineprint">By continuing you confirm you are 18 or older. Betting is risky and you can lose.</p>
       </form>
 
       <div class="land-more">
-        <ul class="land-tiers" aria-label="Pick categories">
-          <li class="t-low"><b>1.15–1.60</b><span>Low odds</span><small>Safest picks</small></li>
-          <li class="t-medium"><b>1.60–2.50</b><span>Medium odds</span><small>Balanced</small></li>
-          <li class="t-high"><b>2.50+</b><span>High odds</span><small>Bigger returns</small></li>
-          <li class="t-long"><b>50–1000+</b><span>Long bets</span><small>Mega accumulators</small></li>
-        </ul>
-        <ol class="land-steps">
-          <li><b>1</b><div><h3>Sign up with your number</h3><p>One tap, no passwords to remember.</p></div></li>
-          <li><b>2</b><div><h3>Pick your bookmaker</h3><p>SportyBet, MSport, Football.com or Betway.</p></div></li>
-          <li><b>3</b><div><h3>Copy the code and play</h3><p>Fresh picks and booking codes every morning.</p></div></li>
-        </ol>
-        <p class="land-note">Every result is tracked in public on the Record page, wins and losses.</p>
+        <section class="how" aria-label="How it works">
+          <h2>Load a Code <span>in Three Simple Steps</span></h2>
+          <ol>
+            <li><i class="step-n">1</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11V5a1.6 1.6 0 0 1 3.2 0v5l4.3.8a2 2 0 0 1 1.6 2.3l-.9 5.2a2 2 0 0 1-2 1.7H10a2 2 0 0 1-1.6-.8L5 14.6a1.5 1.5 0 0 1 2.3-1.9L9 14z"/></svg><b>Tap a slip</b><span>Today's code or a long bet.</span></li>
+            <li><i class="step-n">2</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-5-4-5 4z"/></svg><b>Pick your bookmaker</b><span>You only see codes for the company you bet with.</span></li>
+            <li><i class="step-n">3</i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/></svg><b>Paste it on the betslip</b><span>Copy the code, open your app, and load it.</span></li>
+          </ol>
+        </section>
       </div>
     </div>
   </section>
@@ -69,19 +67,13 @@
   <div id="app-view" hidden>
     <header class="top">
       <div class="brand">
-        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <defs><linearGradient id="brand-grad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#F7E08E"/><stop offset=".5" stop-color="#D4AF37"/><stop offset="1" stop-color="#A97F1C"/>
-          </linearGradient></defs>
-          <rect x="1" y="1" width="62" height="62" rx="15" fill="#071A47" stroke="rgba(245,217,122,.4)" stroke-width="2"/>
-          <circle cx="32" cy="32" r="17" fill="none" stroke="url(#brand-grad)" stroke-width="6"/>
-          <path d="M32 12v40M12 32h40" stroke="url(#brand-grad)" stroke-width="3" opacity=".45"/>
-        </svg>
+        <span class="ball-logo" aria-hidden="true"></span>
         <div class="brand-text">
           <div class="logo">Odds<span>Day</span></div>
-          <small id="top-date">Booking codes</small>
+          <small>Play Smart, Win Big</small>
         </div>
       </div>
+      <button id="bell" class="icon-btn" aria-label="New codes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.6 2H4.4zM10 21h4"/></svg><b id="bell-n" hidden></b></button>
       <button id="menu-btn" class="icon-btn" aria-label="Account menu" aria-haspopup="true">
         <span id="avatar"></span>
       </button>
@@ -99,6 +91,13 @@
     <footer class="foot">
       <p>18+ only. Betting is risky and you can lose. Only stake what you can afford to lose. Need help? Talk to someone you trust or a problem-gambling service.</p>
     </footer>
+
+    <nav class="dock" aria-label="Main">
+      <button type="button" data-dock="home" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11L12 3.5 20.5 11V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"/></svg>Home</button>
+      <button type="button" data-dock="premium"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 36l-2-20 12 10 7-14 7 14 12-10-2 20z"/><path d="M9 42h30"/></svg>Premium</button>
+      <button type="button" data-dock="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11 20l3-4.5 4 3z"/><path d="M9 13.5L21 4"/></svg>Alerts</button>
+      <button type="button" data-dock="account"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>Account</button>
+    </nav>
   </div>
 
   <dialog id="post-dialog" class="tg-dialog post-dialog" aria-labelledby="post-title">

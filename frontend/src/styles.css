@@ -798,3 +798,154 @@ body.in-app .foot, body.in-app .foot p { color: var(--text-2); }
 .vip-perks { margin: 0 0 14px; padding-left: 20px; color: var(--text-2); font-size: .9rem; display: grid; gap: 2px; }
 #premium-dialog .btn-primary { width: 100%; }
 @media (max-width: 380px) { .vip-banner { flex-direction: column; align-items: flex-start; } }
+
+/* =========================================================
+   NIGHT STADIUM THEME (sign-in and home). Loaded last.
+   ========================================================= */
+body.night {
+  --night: #040C26; --blue: #1D4ED8; --edge: rgba(70,125,255,.55); --amber: #FFC21A; --amber-2: #F2A100;
+  --display: 'Poppins', 'Figtree', system-ui, sans-serif; --body: 'Figtree', system-ui, sans-serif;
+  background: radial-gradient(90% 40% at 50% 0%, rgba(30,70,190,.35), transparent 70%), linear-gradient(180deg, #050E2B 0%, #040B22 100%) fixed, var(--night);
+  color: #fff;
+}
+body.night::before { background: var(--night); }
+
+/* ----- brand + header ----- */
+.night .ball-logo { display: block; width: 46px; height: 46px; flex: none; filter: drop-shadow(0 3px 8px rgba(0,0,0,.5)); }
+.night .ball-logo svg { width: 100%; height: 100%; display: block; }
+.night .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.night .brand-mark { display: none; }
+.night .logo { font-family: var(--display); font-weight: 800; font-size: 1.7rem; line-height: 1; letter-spacing: 0; background: none; color: #fff; -webkit-text-fill-color: #fff; }
+.night .logo span { color: var(--amber); -webkit-text-fill-color: var(--amber); }
+.night .brand-text small { display: block; margin-top: 3px; font-size: .78rem; font-weight: 500; font-style: italic; color: #E8EEFF; opacity: .9; letter-spacing: 0; text-transform: none; }
+.night .top, body.night[data-view="home"] .top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+  background: linear-gradient(180deg, rgba(4,11,36,.96), rgba(5,16,52,.88)); border: 0; border-radius: 0 0 26px 26px; box-shadow: 0 10px 28px rgba(0,0,0,.45); backdrop-filter: blur(8px); }
+.night .top::after { display: none; }
+.night .top .brand { margin-right: auto; }
+.night .top .icon-btn { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.04); border: 1.5px solid rgba(160,190,255,.35); color: #fff; }
+.night .top #avatar svg { width: 24px; height: 24px; fill: #fff; stroke: none; }
+.night #bell { border-color: transparent; background: none; }
+.night #bell svg { width: 30px; height: 30px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.night #bell-n { position: absolute; top: -1px; right: -1px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: #F03A3A; color: #fff; font-size: .72rem; font-weight: 700; display: grid; place-items: center; border: 2px solid #06133A; }
+.night #bell-n[hidden] { display: none; }
+.night .menu { background: #0B1D5A; border: 1px solid var(--edge); color: #fff; }
+
+/* ----- hero ----- */
+body.night.in-app main { max-width: 640px; margin: 0 auto; padding: 0 14px calc(104px + env(safe-area-inset-bottom)); }
+.night #posts { display: block; margin-top: -86px; }
+.night .hero { position: relative; margin: 0 -14px; padding: 96px 20px 26px; min-height: 360px; isolation: isolate; overflow: hidden; }
+.night .stadium { position: absolute; inset: 0; z-index: -1; }
+.night .stadium svg { width: 100%; height: 100%; display: block; }
+.night .stadium::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(4,11,36,.1) 30%, rgba(4,12,38,.35) 65%, #040B22 100%), linear-gradient(90deg, rgba(4,11,36,.78) 0%, rgba(4,11,36,.2) 62%, transparent 100%); }
+.night .hello { margin: 0; font-family: var(--display); font-weight: 500; font-size: 1.35rem; color: var(--amber); }
+.night .hero h1 { margin: 2px 0 10px; font-family: var(--display); font-weight: 800; font-style: italic; font-size: clamp(2.2rem, 10.5vw, 3.1rem); line-height: 1.04; letter-spacing: -.01em; color: #fff; text-shadow: 0 3px 18px rgba(0,0,0,.55); }
+.night .hero h1 em { font-style: italic; color: var(--amber); }
+.night .hero-sub { margin: 0 0 18px; font-weight: 500; font-size: 1rem; color: #F1F5FF; max-width: 28ch; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.night .hero-cta { display: inline-flex; align-items: center; gap: 10px; border: 0; padding: 13px 26px; border-radius: 99px; background: linear-gradient(180deg, #FFD43B, var(--amber-2)); color: #1B1300; font-family: var(--display); font-weight: 700; font-size: 1.05rem; box-shadow: 0 8px 22px rgba(242,161,0,.45); }
+.night .hero-cta i { font-style: normal; }
+.night .vip-badge { margin-left: 10px; vertical-align: middle; }
+
+/* ----- stats ----- */
+.night .board { grid-template-columns: 1fr 1fr 1.35fr; gap: 0; margin: -22px 0 0; position: relative; z-index: 2; background: linear-gradient(180deg, #0B2268, #081A54); border: 1.5px solid var(--edge); border-radius: 18px; box-shadow: 0 12px 30px rgba(0,0,0,.45); overflow: hidden; }
+.night .board > div { background: none; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 14px 10px 12px 12px; }
+.night .board > div + div { border-left: 1px solid rgba(120,160,255,.25); }
+.night .board .bi { grid-row: 1 / 2; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: none; }
+.night .board .bi svg { width: 28px; height: 28px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.night .board .bi.blue svg { stroke: #fff; } .night .board .bi.blue { background: var(--blue); border-radius: 50%; width: 36px; height: 36px; }
+.night .board .bi.blue svg { width: 20px; height: 20px; }
+.night .board .bi.gold svg { stroke: var(--amber); fill: rgba(255,194,26,.25); }
+.night .board b { font-family: var(--display); font-weight: 700; font-size: 1.55rem; line-height: 1; color: #fff; text-shadow: none; }
+.night .board .clock { font-size: 1.25rem; white-space: nowrap; }
+.night .board > div > span:last-child { grid-column: 1 / -1; margin-top: 6px; font-size: .78rem; color: #E1E9FF; line-height: 1.2; }
+
+/* ----- section titles ----- */
+.night .rail { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 26px 0 12px; font-family: var(--display); font-weight: 700; font-size: 1.25rem; letter-spacing: 0; color: #fff; }
+.night .rail::after { display: none; }
+.night .rail > span { display: inline-flex; align-items: center; gap: 10px; }
+.night .rail time { font-family: var(--body); font-weight: 500; font-size: .92rem; color: #DCE6FF; }
+.night .rail-ico svg { width: 24px; height: 24px; stroke: #3B82F6; stroke-width: 3.4; fill: none; stroke-linecap: round; }
+.night .rail-vip svg { width: 24px; height: 24px; fill: none; stroke: var(--amber); stroke-width: 3; stroke-linejoin: round; }
+
+/* ----- tickets ----- */
+.night .tickets { gap: 14px; }
+.night .ticket { --stub: 98px; display: grid; grid-template-columns: var(--stub) 1fr auto; position: relative; overflow: hidden; -webkit-mask: none; mask: none; filter: none; border-radius: 18px;
+  background: radial-gradient(70% 120% at 100% 100%, rgba(120,170,255,.22), transparent 60%), linear-gradient(120deg, #0E2C80 0%, #0A2166 60%, #081A52 100%); border: 1.5px solid var(--edge); box-shadow: 0 10px 26px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.04); }
+.night .ticket:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.night .ticket .stub { align-content: center; gap: 8px; padding: 14px 6px; border: 0; border-radius: 0; background: linear-gradient(135deg, #FFD24A, var(--amber-2)); color: #3A2600; }
+.night .ticket .stub svg { width: 38px; height: 38px; stroke-width: 2.4; }
+.night .ticket .stub small { font-family: var(--display); font-weight: 600; font-size: .95rem; }
+.night .ticket .body { padding: 15px 10px 15px 16px; gap: 8px; }
+.night .t-title { font-family: var(--display); font-weight: 700; font-size: 1.12rem; line-height: 1.22; letter-spacing: 0; }
+.night .chip { width: 32px; height: 32px; background: rgba(4,12,40,.55); color: #fff; border: 2px solid var(--amber); font-family: var(--display); font-size: .72rem; font-weight: 700; }
+.night .chips em { font-size: .9rem; font-weight: 500; color: #fff; margin-left: 6px; }
+.night .t-meta { font-size: .92rem; color: #F1F5FF; }
+.night .live-dot { width: 18px; height: 18px; background: none; box-shadow: none; border: 2.5px solid #3DD69A; position: relative; animation: none; }
+.night .live-dot::after { content: ''; position: absolute; left: 50%; top: 2px; width: 2px; height: 5px; background: #3DD69A; transform: translateX(-50%); box-shadow: 3px 4px 0 -0.2px #3DD69A; }
+.night .ticket .get { margin-right: 14px; padding: 12px 18px; background: linear-gradient(180deg, #FFD43B, var(--amber-2)); color: #1B1300; font-family: var(--display); font-weight: 700; font-size: .98rem; box-shadow: 0 6px 16px rgba(242,161,0,.35); }
+.night .ticket .get i { font-size: 1.25rem; }
+.night .ticket.is-long .stub { background: linear-gradient(135deg, #FFD24A, var(--amber-2)); color: #3A2600; }
+.night .ticket.is-vip { background: radial-gradient(70% 120% at 100% 100%, rgba(170,120,255,.28), transparent 60%), linear-gradient(120deg, #3A1D8F 0%, #281366 60%, #1B0D4A 100%); border-color: rgba(190,160,255,.6); }
+.night .ticket.is-vip .stub { background: linear-gradient(135deg, #9B72FF, #4C27B8); color: #FFE9A3; }
+.night .ticket.ghost { grid-template-columns: var(--stub) 1fr; background: linear-gradient(120deg, rgba(20,45,120,.55), rgba(8,22,70,.55)); border-color: rgba(100,140,230,.35); box-shadow: none; }
+.night .ticket.ghost .stub { background: rgba(255,255,255,.04); color: #C9D6F5; border-right: 1px solid rgba(120,160,255,.3); }
+.night .ticket.ghost .t-title { font-size: 1.15rem; color: #fff; }
+.night .ticket.ghost .t-meta { color: #DCE6FF; }
+.night .track { background: rgba(255,255,255,.18); }
+
+/* ----- premium banner ----- */
+.night .vip-banner { margin-top: 24px; }
+.night .vip-banner b { font-family: var(--display); font-weight: 700; font-size: 1.15rem; }
+
+/* ----- how it works ----- */
+.night .how { margin-top: 24px; padding: 16px 12px 14px; border-radius: 18px; background: linear-gradient(180deg, rgba(14,40,120,.6), rgba(8,24,80,.6)); border: 1.5px solid var(--edge); }
+.night .how h2 { margin: 0 0 12px 4px; font-family: var(--display); font-weight: 700; font-size: 1.12rem; color: #fff; }
+.night .how h2 span { color: var(--amber); }
+.night .how ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 0; padding: 0; list-style: none; }
+.night .how li { display: grid; justify-items: start; align-content: start; gap: 4px; padding: 0 10px; position: relative; grid-template-columns: none; column-gap: 0; }
+.night .how li + li { border-left: 1px solid rgba(120,160,255,.28); }
+.night .how li::before, .night .how li::after { display: none; }
+.night .step-n { font-style: normal; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--amber); color: #2A1B00; font-weight: 800; font-size: .95rem; position: absolute; top: -2px; left: 2px; }
+.night .how li svg { width: 34px; height: 34px; margin: 0 0 4px 34px; fill: none; stroke: #4F8BFF; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.night .how li:nth-child(2) svg { fill: var(--amber); stroke: var(--amber); }
+.night .how li:nth-child(3) svg { stroke: #fff; fill: #22B25C; }
+.night .how li b { margin-top: 6px; font-family: var(--display); font-weight: 600; font-size: .86rem; line-height: 1.2; color: #fff; }
+.night .how li span { font-size: .74rem; line-height: 1.3; color: #D5E0FF; }
+.night .foot { max-width: 640px; margin: 0 auto; padding: 8px 18px calc(110px + env(safe-area-inset-bottom)); margin-top: 0; font-size: .78rem; color: #AFC0EA; }
+.night .foot p { color: #AFC0EA; }
+
+/* ----- bottom tab bar ----- */
+.dock { position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); max-width: 640px; margin: 0 auto; padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(6,18,60,.96), rgba(4,11,36,.98)); border: 1.5px solid var(--edge); border-bottom: 0; border-radius: 26px 26px 0 0; box-shadow: 0 -8px 26px rgba(0,0,0,.45); backdrop-filter: blur(10px); }
+.dock button { position: relative; display: grid; justify-items: center; gap: 4px; padding: 8px 4px 10px; border: 0; background: none; color: #DDE7FF; font-family: var(--display); font-weight: 500; font-size: .8rem; }
+.dock svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.dock button.on { color: var(--amber); font-weight: 600; }
+.dock button.on svg { fill: var(--amber); stroke: var(--amber); }
+.dock button.on::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: 0; height: 3px; border-radius: 3px; background: var(--amber); }
+[hidden] + .dock, #app-view[hidden] .dock { display: none; }
+
+/* ----- dialogs on the night theme ----- */
+.night .post-dialog, .night .tg-dialog { background: linear-gradient(180deg, #0C2270, #081A56); border: 1.5px solid var(--edge); color: #fff; }
+.night .post-dialog .code-box .code { font-family: var(--display); font-weight: 700; font-size: 1.7rem; color: var(--amber); }
+.night .plan .price { font-family: var(--display); font-weight: 700; font-size: 1.25rem; color: var(--amber); }
+.night .btn-primary, .night .add.solid { background: linear-gradient(180deg, #FFD43B, var(--amber-2)); color: #1B1300; font-family: var(--display); font-weight: 700; }
+
+/* ----- sign in / sign up ----- */
+.night .land { position: relative; isolation: isolate; overflow: hidden; background: none; min-height: 100vh; padding: calc(16px + env(safe-area-inset-top)) 18px 40px; }
+.night .stadium-slot { position: absolute; inset: 0 0 auto 0; height: 440px; z-index: -1; }
+.night .stadium-slot svg { width: 100%; height: 100%; display: block; }
+.night .stadium-slot::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(4,11,36,.1) 25%, #040B22 100%), linear-gradient(90deg, rgba(4,11,36,.8), transparent 70%); }
+.night .land-top { margin-bottom: 18px; }
+.night .land .hello { font-size: 1.2rem; }
+.night .land h1 { margin: 2px 0 10px; font-family: var(--display); font-weight: 800; font-style: italic; font-size: clamp(2.1rem, 9.5vw, 3.4rem); line-height: 1.06; color: #fff; text-shadow: 0 3px 18px rgba(0,0,0,.55); }
+.night .land h1 em { font-style: italic; background: none; -webkit-text-fill-color: var(--amber); color: var(--amber); }
+.night .lede { color: #EAF0FF; font-size: 1rem; max-width: 38ch; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.night .land .auth-card { background: linear-gradient(180deg, rgba(12,34,112,.92), rgba(7,22,78,.94)); border: 1.5px solid var(--edge); border-radius: 22px; box-shadow: 0 18px 44px rgba(0,0,0,.5); backdrop-filter: blur(8px); position: static; }
+.night .auth-card h2 { font-family: var(--display); font-weight: 700; font-size: 1.35rem; }
+.night .auth-switch { background: rgba(3,10,34,.7); }
+.night .auth-switch [aria-selected="true"] { background: linear-gradient(180deg, #FFD43B, var(--amber-2)); color: #1B1300; }
+.night .land .how { margin-top: 0; }
+.night .age-chip { border-color: var(--amber); color: var(--amber); }
+@media (min-width: 900px) { .night .land-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 420px); grid-template-areas: "hero form" "more form"; } .night .stadium-slot { height: 560px; } }
+@media (max-width: 899px) { .night .land-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "hero" "form" "more"; gap: 20px; } .night .land-hero { padding-top: 70px; } }
+@media (max-width: 380px) { .night .ticket { --stub: 82px; } .night .ticket .get { padding: 10px 12px; margin-right: 8px; } .night .logo { font-size: 1.45rem; } }
+@media (prefers-reduced-motion: reduce) { .night .ticket { transition: none; } }

@@ -71,13 +71,13 @@ $('#auth-form').addEventListener('submit', async e => {
   btn.disabled = false;
 });
 
-function showAuth() { $('#app-view').hidden = true; $('#auth-view').hidden = false; }
+function showAuth() { $('#app-view').hidden = true; $('#auth-view').hidden = false; document.body.classList.remove('in-app'); }
 
 // ---------- shell ----------
 async function startApp() {
   const me = await api('/api/me');
   state.user = me.user;
-  $('#auth-view').hidden = true; $('#app-view').hidden = false;
+  $('#auth-view').hidden = true; $('#app-view').hidden = false; document.body.classList.add('in-app');
   $('#top-date').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
   $('#avatar').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>';
   $('#menu-name').textContent = state.user.name;
@@ -152,25 +152,85 @@ async function loadPosts() {
   if (state.open) { const p = state.posts.find(x => x.id === state.open); p ? openPost(p.id) : closeDialog(); }
 }
 
-function postCard(p) {
+const ICON = {
+  daily: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8.5"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M37.4 10.6l-4.2 4.2M14.8 33.2l-4.2 4.2"/></svg>',
+  long: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 8h18v10a9 9 0 0 1-18 0V8z"/><path d="M15 12H8c0 6 3 9 7 9M33 12h7c0 6-3 9-7 9M24 27v8M17 41h14M19 35h10"/></svg>',
+};
+const initials = n => n.replace(/[^A-Za-z0-9 .]/g, '').split(/[ .]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+// "Closes in 5h 12m"
+function remaining(iso) {
+  const ms = new Date(iso) - Date.now();
+  if (ms <= 0) return 'Closing now';
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  if (d) return `${d}d ${h}h left`;
+  if (h) return `${h}h ${m % 60}m left`;
+  return `${Math.max(1, m)}m left`;
+}
+const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
+
+function postCard(p, i) {
   const long = p.kind === 'long';
-  const names = state.platforms.filter(b => p.entries[b.key]).map(b => esc(b.name)).join(' · ');
-  const until = long ? `Open until the last match is played (${esc(fmtWhen(p.lastMatchAt))})` : `Updated ${esc(fmtWhen(p.createdAt.replace(' ', 'T') + (p.createdAt.includes('Z') ? '' : 'Z')))}`;
-  return `<button type="button" class="post-card ${long ? 'is-long' : ''}" data-post="${p.id}">
-    <span class="post-kind">${long ? 'Long bet booking code' : "Today's booking code"}</span>
-    <b class="post-title">${esc(p.title || (long ? 'Long bet' : 'Today'))}</b>
-    <span class="post-meta">${until}</span>
-    <span class="post-books">${names || 'No bookmakers yet'}</span>
-    <span class="post-go">Tap to choose your bookmaker <i aria-hidden="true">›</i></span>
+  const books = state.platforms.filter(b => p.entries[b.key]);
+  const created = new Date(p.createdAt.replace(' ', 'T') + (/[zZ]$/.test(p.createdAt) ? '' : 'Z')).getTime();
+  const span = long ? Math.max(1, new Date(p.lastMatchAt) - created) : 0;
+  const pct = long ? Math.min(100, Math.max(4, ((Date.now() - created) / span) * 100)) : 0;
+  return `<button type="button" class="ticket ${long ? 'is-long' : ''}" data-post="${p.id}" style="--i:${i}">
+    <span class="stub">${ICON[p.kind]}<small>${long ? 'Long bet' : 'Today'}</small></span>
+    <span class="body">
+      <b class="t-title">${esc(p.title || (long ? 'Long bet slip' : "Today's slip"))}</b>
+      <span class="chips" aria-label="Available on">${books.map(b => `<i class="chip" title="${esc(b.name)}">${esc(initials(b.name))}</i>`).join('')}
+        <em>${books.length} bookmaker${books.length === 1 ? '' : 's'}</em></span>
+      ${long ? `<span class="track" role="img" aria-label="Time until the last match"><i style="width:${pct.toFixed(0)}%"></i></span>
+        <span class="t-meta">Last match ${esc(fmtWhen(p.lastMatchAt))}</span>`
+        : `<span class="t-meta"><span class="live-dot"></span><span data-expires="${esc(p.expiresAt)}">${esc(remaining(p.expiresAt))}</span></span>`}
+    </span>
+    <span class="get">Get code<i aria-hidden="true">›</i></span>
   </button>`;
+}
+
+function ghostTicket(kind) {
+  const long = kind === 'long';
+  return `<div class="ticket ghost">
+    <span class="stub">${ICON[kind]}<small>${long ? 'Long bet' : 'Today'}</small></span>
+    <span class="body"><b class="t-title">${long ? 'No long bet open' : 'Not posted yet'}</b>
+      <span class="t-meta">${long ? 'A long bet shows here when one is posted, and stays until its last match.' : 'Today\'s code shows here as soon as it\'s posted. Turn on Telegram alerts in the menu to get pinged.'}</span></span>
+  </div>`;
 }
 
 function renderPosts() {
   const daily = state.posts.filter(p => p.kind === 'daily'), long = state.posts.filter(p => p.kind === 'long');
-  const section = (title, list, none) => `<h2 class="section-head">${title}</h2>` + (list.length ? `<div class="list">${list.map(postCard).join('')}</div>` : `<div class="empty">${none}</div>`);
-  $('#posts').innerHTML = section("Today's booking code", daily, "Today's code hasn't been posted yet. Check back soon.")
-    + section('Long bet booking code', long, 'No long bet is open right now.');
+  const next = state.posts.map(p => p.kind === 'long' ? null : p.expiresAt).filter(Boolean).sort()[0];
+  const live = state.posts.length;
+  let i = 0;
+  const first = !renderPosts.done; renderPosts.done = true;
+  $('#posts').className = first ? 'enter' : '';
+  $('#posts').innerHTML = `
+    <section class="hero">
+      <p class="hello">${greeting()}</p>
+      <h1>${live ? `${live} live slip${live === 1 ? '' : 's'}<br>ready to load` : 'Your next slip<br>lands here'}</h1>
+      <div class="board" role="group" aria-label="Today at a glance">
+        <div><b>${live}</b><span>Live slips</span></div>
+        <div><b>${state.platforms.length}</b><span>Bookmakers</span></div>
+        <div><b class="clock" ${next ? `data-expires="${esc(next)}" data-short` : ''}>${next ? shortLeft(next) : '—'}</b><span>${next ? 'Until today\'s code clears' : 'Waiting for a code'}</span></div>
+      </div>
+    </section>
+    <h2 class="rail">Today's booking code</h2>
+    <div class="tickets">${daily.length ? daily.map(p => postCard(p, i++)).join('') : ghostTicket('daily')}</div>
+    <h2 class="rail">Long bet booking code</h2>
+    <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div>
+    <section class="how" aria-labelledby="how-h">
+      <h2 id="how-h">Load a code in three steps</h2>
+      <ol>
+        <li><b>Tap a slip</b><span>Today's code or a long bet.</span></li>
+        <li><b>Pick your bookmaker</b><span>You only see codes for the company you bet with.</span></li>
+        <li><b>Paste it on the betslip</b><span>Copy the code, open your app, and load it.</span></li>
+      </ol>
+    </section>`;
 }
+function shortLeft(iso) { const ms = new Date(iso) - Date.now(); if (ms <= 0) return '0m'; const m = Math.floor(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`; }
+// Keep the countdowns ticking.
+setInterval(() => $$('[data-expires]').forEach(el => { el.textContent = el.hasAttribute('data-short') ? shortLeft(el.dataset.expires) : remaining(el.dataset.expires); }), 20000);
 
 // Tap a post: choose a bookmaker, then see that bookmaker's code.
 const postDialog = $('#post-dialog');

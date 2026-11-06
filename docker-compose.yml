@@ -1,0 +1,22 @@
+# Runs all three apps: docker compose up --build
+# API on :3000, public app on :5173, admin console on :5174.
+services:
+  backend:
+    build: ./backend
+    ports: ["3000:3000"]
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: development          # set to production behind HTTPS
+      DB_FILE: /data/app.db
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+    volumes: ["oddsday-data:/data"]
+  frontend:
+    build: ./frontend
+    ports: ["5173:5173"]
+    environment: { API_URL: "http://localhost:3000" }
+  admin:
+    build: ./admin
+    ports: ["5174:5174"]
+    environment: { API_URL: "http://localhost:3000" }
+volumes:
+  oddsday-data:

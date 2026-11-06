@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>OddsDay Admin</title>
+  <meta name="theme-color" content="#0B2466">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-page">
+  <section id="adm-login" class="adm-login" hidden>
+    <form id="adm-form" class="auth-card" novalidate>
+      <div class="logo">Odds<span>Day</span> <small class="adm-tag">Admin</small></div>
+      <h2>Admin sign in</h2>
+      <p class="auth-sub">Use the phone number of an admin account.</p>
+      <label class="field">Phone number
+        <span class="phone-field"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.7 5.7l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 5 5.7 2 2 0 0 1 7 3.5z"/></svg>
+        <input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567" required></span></label>
+      <label class="field">Admin passcode
+        <input name="passcode" type="password" autocomplete="current-password" placeholder="Only if one is set on the server"></label>
+      <p class="form-error" role="alert"></p>
+      <button class="btn-primary" type="submit">Log in</button>
+    </form>
+  </section>
+
+  <section id="adm-denied" class="adm-login" hidden>
+    <div class="auth-card"><h2>Admins only</h2><p class="auth-sub">This account is not an admin. Add the number to ADMIN_PHONES on the API server.</p>
+      <button class="btn-primary" type="button" data-adm-logout>Log out</button></div>
+  </section>
+
+  <div id="adm-console" hidden>
+    <header class="top">
+      <div class="brand"><div class="brand-text"><div class="logo">Odds<span>Day</span></div><small>Admin console</small></div></div>
+      <button class="add" type="button" data-adm-logout>Log out</button>
+    </header>
+    <main>
+        <div class="admin-head">
+          <div><h2>Admin</h2><p class="muted-inline" id="adm-updated">Control centre</p></div>
+          <button class="add" id="adm-refresh" type="button">Refresh</button>
+        </div>
+        <div class="subnav" role="tablist" aria-label="Admin sections">
+          <button role="tab" data-sub="overview"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V11h-6zM14 8h6V4h-6zM4 20h6v-4H4z"/></svg>Overview</button>
+          <button role="tab" data-sub="codes"><svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4zM10 8v8"/></svg>Codes<b id="adm-codes-badge" class="count" hidden></b></button>
+          <button role="tab" data-sub="users"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.6-3.4 3-5 5.5-5s4.9 1.6 5.5 5M16 5.6a3 3 0 0 1 0 5.8M17.5 14.3c1.7.5 2.7 2 3 4.7"/></svg>Users</button>
+          <button role="tab" data-sub="activity"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Activity</button>
+          <button role="tab" data-sub="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Settings</button>
+        </div>
+
+        <div data-sub-panel="overview" id="adm-overview"></div>
+
+        <div data-sub-panel="codes" hidden>
+          <p class="muted">For each ticket, add the games to a betslip on each bookmaker exactly as listed, book the bet, and paste that bookmaker's code. Users see the code for the bookmaker they picked. Leave a box empty if you don't cover that bookmaker.</p>
+          <div id="codes" class="list"></div>
+        </div>
+
+        <div data-sub-panel="users" hidden>
+          <details class="hud adm-tool"><summary>Add a user</summary>
+            <form id="adm-adduser" novalidate>
+              <label>Phone number<input name="phone" type="tel" inputmode="tel" placeholder="024 123 4567" autocomplete="off"></label>
+              <label>Bookmaker<select name="platform"></select></label>
+              <label class="check"><input name="isAdmin" type="checkbox"> Make admin</label>
+              <button class="add solid" type="submit">Add user</button>
+            </form></details>
+          <details class="hud adm-tool"><summary>Message users on Telegram</summary>
+            <form id="adm-broadcast" novalidate>
+              <textarea name="message" maxlength="1000" placeholder="Short message sent to every user who linked Telegram"></textarea>
+              <label>Send to<select name="platform"></select></label>
+              <button class="add solid" type="submit">Send message</button>
+            </form></details>
+          <input id="adm-search" class="adm-search" type="search" placeholder="Search phone number" autocomplete="off" aria-label="Search users by phone">
+          <div id="adm-users" class="list"></div>
+        </div>
+
+        <div data-sub-panel="settings" hidden>
+          <p class="muted">Everything here is saved on the server and takes effect straight away. A value saved here replaces the one in your server settings until you reset it.</p>
+          <div id="adm-settings"></div>
+        </div>
+
+        <div data-sub-panel="activity" hidden>
+          <div class="hud adm-actions">
+            <div class="hud-head"><h2>Run now</h2></div>
+            <div class="adm-buttons">
+              <button class="add solid" id="adm-run" type="button">Refresh predictions</button>
+              <button class="add" id="adm-settle" type="button">Settle finished games</button>
+            </div>
+            <p class="muted-inline" id="adm-schedule"></p>
+          </div>
+          <div id="adm-runs" class="list"></div>
+          <div id="adm-log" class="list"></div>
+        </div>
+      </main>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

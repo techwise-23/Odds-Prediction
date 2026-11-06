@@ -1,0 +1,133 @@
+/* =========================================================
+   ADMIN DASHBOARD
+   ========================================================= */
+.admin-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+.admin-head h2 { margin: 0; }
+.admin-head .add { background: var(--surface); }
+.subnav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 4px; margin: 6px 0 16px; background: var(--bar); border-radius: 12px; box-shadow: 0 4px 14px rgba(11,30,79,.25); }
+.subnav button { border: 0; background: none; color: var(--text-2); font-weight: 700; font-size: .9rem; padding: 9px 4px; border-radius: 9px; }
+.subnav button[aria-selected="true"] { background: var(--metal); color: var(--on-gold); }
+[data-sub-panel] { display: grid; gap: 12px; align-content: start; }
+[data-sub-panel][hidden] { display: none; }
+
+.adm-attn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.adm-attn { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--gold); font-size: .92rem; }
+.adm-attn.bad { border-left-color: var(--high); } .adm-attn.warn { border-left-color: var(--medium); } .adm-attn.info { border-left-color: var(--text-2); color: var(--text-2); }
+.adm-allgood { padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--low); font-weight: 600; }
+
+.adm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.adm-stat { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: 4px 4px 10px 10px; padding: 12px 14px; min-width: 0; }
+.adm-stat span { display: block; font-size: .8rem; color: var(--text-2); font-weight: 600; }
+.adm-stat b { display: block; font-family: var(--display); font-size: 2.3rem; line-height: 1.05; color: var(--text); font-variant-numeric: tabular-nums; }
+.adm-stat small { display: block; font-size: .78rem; color: var(--text-2); margin-top: 2px; }
+
+.adm-block { margin: 0; }
+.adm-day h4 { margin: 0 0 6px; font-size: 1rem; color: var(--text); }
+.adm-day + .adm-day { margin-top: 14px; }
+.adm-day table, .adm-block table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.adm-day th, .adm-day td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.adm-day th { color: var(--text-2); font-weight: 600; font-size: .8rem; }
+.adm-cover { margin: 12px 0 0; }
+.adm-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center; }
+.adm-tier .ring { width: 92px; max-width: 100%; margin: 0 auto; display: block; }
+.adm-tier h4 { margin: 4px 0 2px; font-family: var(--display); font-size: 1.15rem; }
+.adm-tier p { margin: 0; font-size: .8rem; color: var(--text-2); }
+.adm-bar { display: grid; grid-template-columns: 96px 1fr 34px; gap: 10px; align-items: center; margin: 8px 0; font-size: .9rem; }
+.adm-bar i { display: block; height: 10px; border-radius: 99px; background: var(--bg); position: relative; overflow: hidden; }
+.adm-bar i::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--metal); border-radius: 99px; }
+.adm-bar b { text-align: right; font-variant-numeric: tabular-nums; }
+.adm-dl { margin: 0; display: grid; gap: 0; }
+.adm-dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.adm-dl > div:last-child { border-bottom: 0; }
+.adm-dl dt { color: var(--text-2); } .adm-dl dd { margin: 0; text-align: right; }
+.adm-dl small { display: block; color: var(--text-2); font-size: .76rem; }
+
+.adm-search { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; }
+.adm-search::placeholder { color: var(--text-2); }
+.adm-search:focus { outline: none; border-color: var(--gold); }
+.adm-user { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.adm-avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--metal); color: var(--on-gold); font-weight: 700; }
+.adm-user-main { min-width: 0; overflow-wrap: anywhere; }
+.adm-user .meta { margin-top: 4px; }
+.adm-actions .adm-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-actions .muted-inline { margin: 10px 0 0; }
+[data-sub-panel] > .muted-inline, [data-sub-panel] > .muted { color: var(--ink-2); }
+
+/* admin: readable text on blue cards, dark text on the gold page */
+.adm-attn, .adm-allgood, .adm-stat, .adm-user, .adm-day, .adm-tier, .adm-bar, .adm-dl, .adm-actions { color: var(--text); }
+.adm-attn.info { color: var(--text-2); }
+.adm-user .meta, .adm-user .muted-inline, .adm-day .muted-inline, .adm-tier p { color: var(--text-2); }
+#adm-users > .muted-inline, #adm-runs > .muted-inline { color: var(--ink-2); }
+.adm-block .badge, .adm-user .badge, #adm-runs .badge { white-space: nowrap; }
+.adm-day td:last-child { white-space: nowrap; }
+.adm-attn .link { flex: none; }
+#adm-runs td:first-child { white-space: nowrap; }
+
+/* ---------- ADMIN DASHBOARD ---------- */
+.admin-head { align-items: flex-end; margin-bottom: 10px; }
+.admin-head .add { padding: 9px 18px; border-radius: 99px; background: var(--surface); border: 1px solid rgba(245,217,122,.4); color: var(--gold-light); }
+.subnav { position: sticky; top: calc(62px + env(safe-area-inset-top)); z-index: 8; padding: 5px; border-radius: 16px; background: rgba(7,24,72,.94); backdrop-filter: blur(10px); border: 1px solid rgba(245,217,122,.25); }
+.subnav button { position: relative; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 6px; border-radius: 12px; font-size: .88rem; }
+.subnav svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.subnav .count { margin: 0; background: var(--high); color: #fff; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.kpi { position: relative; background: linear-gradient(180deg, #14378a, #0F2C6E); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px 12px; overflow: hidden; color: var(--text); }
+.kpi::after { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--metal); }
+.kpi.good::after { background: var(--won); } .kpi.warn::after { background: var(--medium); } .kpi.bad::after { background: var(--lost); }
+.kpi-ico { position: absolute; right: 12px; top: 12px; width: 22px; height: 22px; fill: none; stroke: var(--gold-light); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+.kpi span { display: block; font-size: .78rem; font-weight: 700; color: var(--text-2); letter-spacing: .04em; text-transform: uppercase; }
+.kpi b { display: block; font-family: var(--display); font-size: 2.6rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kpi small { display: block; color: var(--text-2); font-size: .78rem; }
+.adm-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.adm-col { display: grid; gap: 14px; min-width: 0; }
+.adm-block { padding: 16px 18px; }
+.adm-attn, .adm-allgood { border-radius: 14px; }
+.adm-user { grid-template-columns: 44px 1fr auto; border-radius: 16px; }
+.adm-avatar { width: 44px; height: 44px; font-size: .95rem; }
+.code-card { border-radius: 18px; padding: 16px 18px; }
+.code-grid input { border-radius: 10px; padding: 11px 12px; }
+@media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adm-cols { grid-template-columns: minmax(0, 1fr); } .kpi b { font-size: 2.2rem; } .subnav svg { display: none; } }
+@media (max-width: 420px) { .subnav button { font-size: .8rem; padding: 10px 2px; } }
+
+/* ---------- admin page shell ---------- */
+body.admin-page { background: var(--page-solid) var(--page) fixed; }
+body.admin-page main { max-width: 1160px; padding-bottom: 60px; }
+.adm-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: linear-gradient(180deg, #071A47, #0A1F52); color: var(--text); }
+.adm-login .auth-card { width: min(400px, 100%); margin: 0; padding: 26px; border-radius: 22px; background: linear-gradient(180deg, #123380, #0F2C6E); border: 1px solid rgba(245,217,122,.35); }
+.adm-tag { font: 700 .75rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--gold-light); border: 1px solid var(--gold); border-radius: 99px; padding: 2px 8px; vertical-align: middle; -webkit-text-fill-color: var(--gold-light); }
+body.admin-page .subnav { top: calc(62px + env(safe-area-inset-top)); }
+
+/* Passcode field on the sign-in card: same size as the phone field. */
+.auth-card .field > input[type=password] { margin-top: 8px; padding: 16px 14px; font-size: 1.05rem; font-weight: 600; border-radius: 14px; }
+
+/* ---------- settings, user tools, admin log ---------- */
+.set-card { margin-bottom: 16px; color: var(--text); }
+.set-card p.muted-inline { margin: 0 0 12px; }
+.set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.set-grid label, .set-row label, .adm-tool label { display: block; font-size: .8rem; font-weight: 700; color: var(--text-2); }
+.set-card input:not([type=checkbox]), .set-card select, .adm-tool input:not([type=checkbox]), .adm-tool select, .adm-tool textarea {
+  display: block; width: 100%; margin-top: 4px; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--text); font: 500 .95rem var(--body); }
+.set-card input:focus, .set-card select:focus, .adm-tool input:focus, .adm-tool select:focus, .adm-tool textarea:focus { border-color: var(--gold); outline: none; }
+.set-card input[readonly] { opacity: .65; }
+.set-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; align-items: end; padding: 12px; margin-bottom: 10px;
+  background: rgba(10,31,82,.55); border: 1px solid var(--line); border-radius: 12px; }
+.set-row .wide { grid-column: span 2; }
+.set-row .pool { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-bottom: 8px; }
+.set-row .pool label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+.set-row .pool input { width: auto; margin: 0; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+.set-actions .spacer { flex: 1; }
+.set-status { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--text-2); }
+.set-fixed { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: .88rem; }
+.set-fixed dt { color: var(--text-2); } .set-fixed dd { margin: 0; overflow-wrap: anywhere; }
+.adm-tool { margin-bottom: 14px; padding: 12px 16px; }
+.adm-tool summary { cursor: pointer; font-weight: 700; color: var(--gold-light); }
+.adm-tool form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; align-items: end; margin-top: 12px; }
+.adm-tool textarea { min-height: 84px; resize: vertical; grid-column: 1 / -1; }
+.adm-tool .check { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
+.adm-tool .check input { width: auto; margin: 0; }
+.adm-user .adm-user-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.add.danger, .link.danger { color: #FF8F88; }
+@media (max-width: 520px) { .set-row .wide { grid-column: auto; } .adm-user { grid-template-columns: 40px 1fr; } .adm-user .adm-user-btns { grid-column: 1 / -1; justify-content: flex-start; } }
+@media (max-width: 420px) { .subnav { gap: 2px; padding: 4px 3px; } .subnav button { font-size: .74rem; padding: 10px 0; } .subnav .count { font-size: .62rem; padding: 0 5px; margin-left: 2px; } }

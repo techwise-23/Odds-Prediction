@@ -69,6 +69,29 @@ router.put('/tickets/:id/codes', adminAuth, (req, res) => {
   }
   res.json({ ok: true, codes: saved });
 });
+// ---------- booking-code posts ----------
+const posts = require('../posts');
+const postErr = (res, e) => res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not save the post' });
+router.get('/posts', adminAuth, (req, res) => { posts.cleanup(); res.json({ posts: posts.active(), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })) }); });
+router.post('/posts', adminAuth, (req, res) => {
+  try {
+    const id = posts.create({ kind: req.body.kind, title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, by: displayPhone(req.user.phone) });
+    settings.log(displayPhone(req.user.phone), `Posted ${req.body.kind === 'long' ? 'long bet' : "today's"} booking codes`);
+    const post = posts.active().find(p => p.id === id);
+    notify.postAdded(post).catch(e => console.error('notify:', e.message));
+    res.json({ ok: true, id });
+  } catch (e) { postErr(res, e); }
+});
+router.put('/posts/:id', adminAuth, (req, res) => {
+  try { posts.update(Number(req.params.id), { title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries }); res.json({ ok: true }); }
+  catch (e) { postErr(res, e); }
+});
+router.delete('/posts/:id', adminAuth, (req, res) => {
+  if (!posts.remove(Number(req.params.id))) return res.status(404).json({ error: 'Post not found' });
+  settings.log(displayPhone(req.user.phone), 'Deleted a booking-code post');
+  res.json({ ok: true });
+});
+
 // Admin dashboard: everything on one screen.
 router.get('/overview', adminAuth, (req, res) => {
   const today = engine.localDate(0), tomorrow = engine.localDate(1), nowIso = new Date().toISOString();

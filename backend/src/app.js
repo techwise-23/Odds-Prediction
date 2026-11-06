@@ -13,7 +13,8 @@ if (trustProxy) app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustPr
 
 app.disable('x-powered-by');
 app.use(cors);
-app.use(express.json());
+const small = express.json({ limit: '100kb' }), large = express.json({ limit: '9mb' }); // 9 MB only where admins upload screenshots
+app.use((req, res, next) => (req.path.startsWith('/api/admin/posts') ? large : small)(req, res, next));
 app.use(cookieParser());
 
 // Health check for Railway and uptime monitors.

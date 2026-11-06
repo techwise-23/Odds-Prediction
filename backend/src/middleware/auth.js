@@ -50,6 +50,13 @@ function auth(req, res, next) {
   req.user ? next() : res.status(401).json({ error: 'Please log in' });
 }
 
+// Either a signed-in user or a signed-in admin (used for images shown in both apps).
+function authAny(req, res, next) {
+  const u = userFrom(req, USER_COOKIE, 'user') || userFrom(req, ADMIN_COOKIE, 'admin');
+  if (!u) return res.status(401).json({ error: 'Please log in' });
+  req.user = u; next();
+}
+
 // Admin routes: needs the admin cookie AND the user must still be an admin in the database.
 function adminAuth(req, res, next) {
   const u = userFrom(req, ADMIN_COOKIE, 'admin');
@@ -69,4 +76,4 @@ function limited(req, res, next) {
 
 function publicUser(u) { return { id: u.id, phone: u.phone, name: displayPhone(u.phone), isAdmin: !!u.is_admin, platform: u.platform || 'sportybet' }; }
 
-module.exports = { USER_COOKIE, ADMIN_COOKIE, setUserSession, setAdminSession, clearSession, auth, adminAuth, limited, publicUser };
+module.exports = { USER_COOKIE, ADMIN_COOKIE, setUserSession, setAdminSession, clearSession, auth, authAny, adminAuth, limited, publicUser };

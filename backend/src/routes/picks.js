@@ -3,10 +3,22 @@ const express = require('express');
 const config = require('../config');
 const db = require('../db');
 const engine = require('../engine');
-const { auth } = require('../middleware/auth');
+const { auth, authAny } = require('../middleware/auth');
+const posts = require('../posts');
 const { predictionRows, ticketsFor } = require('../services/tickets');
 
 const router = express.Router();
+
+// Booking codes posted by the admin. Expired posts are never returned.
+router.get('/posts', auth, (req, res) => {
+  res.json({ posts: posts.active(), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), now: new Date().toISOString() });
+});
+// Screenshot of a booking slip. Needs a signed-in user (or admin); the page fetches it with its token and shows it.
+router.get('/post-images/:id', authAny, (req, res) => {
+  const img = /^[0-9a-f]{32}$/.test(req.params.id) ? posts.image(req.params.id) : null;
+  if (!img) return res.status(404).json({ error: 'Not found' });
+  res.set({ 'Content-Type': img.mime, 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' }).send(img.data);
+});
 
 router.get('/predictions', auth, (req, res) => {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : engine.localDate(0);

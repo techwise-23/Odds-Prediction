@@ -60,6 +60,13 @@ module.exports = {
   // How often finished games are settled (won/lost).
   settleCron: env.SETTLE_CRON || '15 * * * *',
 
+  // Booking-code posts. Daily posts disappear at this hour (local time) on the day after their date.
+  postExpireHour: Math.min(23, Math.max(0, Number(env.POST_EXPIRE_HOUR ?? 12))),
+  // Long bets disappear this many hours after the LAST match kicks off (a match lasts about 2 hours).
+  longBetGraceHours: Number(env.LONG_BET_GRACE_HOURS || 3),
+  // The old system-generated predictions and tickets are OFF. Set AUTO_PREDICTIONS=1 to bring them back.
+  autoPredictions: env.AUTO_PREDICTIONS === '1',
+
   // Telegram alerts (optional). Create a bot with @BotFather and put its token here.
   telegramToken: env.TELEGRAM_BOT_TOKEN || '',
   telegramApi: env.TELEGRAM_API_BASE || 'https://api.telegram.org', // only changed for tests

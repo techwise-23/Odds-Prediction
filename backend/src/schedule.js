@@ -17,6 +17,7 @@ function stop() { for (const t of tasks) { t.stop(); if (t.destroy) t.destroy();
 function start() {
   stop();
   const opts = { timezone: config.timezone };
+  if (!config.autoPredictions) return; // booking codes are posted by the admin; nothing is generated
   tasks = [
     cron.schedule(config.predictCron, () => dailyJob().catch(e => console.error(e)), opts),
     cron.schedule(config.settleCron, () => engine.settle().catch(e => console.error(e)), opts),

@@ -661,3 +661,30 @@ main > section > h2, .slip-head h2 { font-size: 2.1rem; }
   main, body[data-view="home"] main, .foot { max-width: 1160px; }
 }
 @media (max-width: 380px) { .tabs button { font-size: .64rem; } .tabs button svg { width: 21px; height: 21px; } }
+
+
+/* ---------- booking-code posts ---------- */
+#posts { display: grid; gap: 6px; }
+.section-head { margin: 14px 0 4px; font-family: var(--display); font-size: 1.4rem; letter-spacing: .02em; color: var(--ink); }
+.post-card { display: grid; gap: 4px; width: 100%; text-align: left; border: 1px solid var(--line); border-left: 5px solid var(--gold); background: var(--surface); color: var(--text); border-radius: 14px; padding: 16px 18px; box-shadow: 0 6px 18px rgba(11,30,79,.25); }
+.post-card:hover { background: var(--surface-2); }
+.post-card.is-long { border-left-color: var(--high); }
+.post-kind { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-light); }
+.post-title { font-family: var(--display); font-size: 1.7rem; line-height: 1.1; }
+.post-meta, .post-books { font-size: .85rem; color: var(--text-2); }
+.post-go { margin-top: 6px; font-weight: 700; color: var(--gold-light); display: flex; justify-content: space-between; }
+.post-dialog .muted { color: var(--text-2); margin: 0 0 12px; }
+.book-list { display: grid; gap: 8px; }
+.book { display: flex; justify-content: space-between; align-items: center; width: 100%; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); padding: 14px 16px; border-radius: 10px; font-weight: 700; font-size: 1.02rem; }
+.book:hover { border-color: var(--gold); }
+.book.off { opacity: .5; } .book.off small { font-weight: 500; color: var(--text-2); }
+.post-dialog .back { margin-bottom: 6px; }
+.book-name { margin: 4px 0 10px; font-family: var(--display); font-size: 1.6rem; }
+.post-dialog .code-box { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; margin-bottom: 12px; }
+.post-dialog .code-box span { font-size: .8rem; color: var(--text-2); display: block; }
+.post-dialog .code-box .code { font-family: var(--display); font-size: 2.1rem; letter-spacing: .06em; word-break: break-all; color: var(--gold-light); }
+.slip-img { margin: 0 0 12px; } .slip-img img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; background: var(--bg); min-height: 60px; }
+.slip-img figcaption { margin-top: 6px; font-weight: 700; text-align: center; word-break: break-all; }
+.slip-link { display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+.post-dialog .add { display: inline-block; text-decoration: none; margin-bottom: 4px; }
+.post-dialog .fineprint { font-size: .78rem; color: var(--text-2); margin: 10px 0 0; }

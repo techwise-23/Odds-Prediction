@@ -120,4 +120,33 @@ db.exec(`CREATE TABLE IF NOT EXISTS notification_log (
   PRIMARY KEY (user_id, kind, ref)
 )`);
 
+// Booking-code posts written by the admin (no auto-generated tickets).
+//  kind 'daily': shown for one day, removed at POST_EXPIRE_HOUR (default 12:00) the next day.
+//  kind 'long' : kept until the last match has been played (expires_at = last kickoff + a few hours).
+db.exec(`CREATE TABLE IF NOT EXISTS posts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  date TEXT NOT NULL,
+  last_match_at TEXT,
+  expires_at TEXT NOT NULL,
+  created_by TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+// One entry per bookmaker: a code, or an image whose caption is the code, or a link.
+db.exec(`CREATE TABLE IF NOT EXISTS post_entries (
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  code TEXT NOT NULL DEFAULT '',
+  link TEXT NOT NULL DEFAULT '',
+  image_id TEXT,
+  PRIMARY KEY (post_id, platform)
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS post_images (
+  id TEXT PRIMARY KEY,
+  mime TEXT NOT NULL,
+  data BLOB NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+
 module.exports = db;

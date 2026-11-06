@@ -22,6 +22,11 @@ if (process.env.NODE_ENV === 'production' && !settings.passcodeSet()) {
 }
 
 const app = require('./app');
+const posts = require('./posts');
+
+// Expired booking-code posts (daily ones after the cut-off hour, long bets after the last match) are deleted every few minutes.
+const sweep = () => { try { const n = posts.cleanup(); if (n) console.log(`Removed ${n} expired post(s)`); } catch (e) { console.error('post cleanup:', e.message); } };
+sweep(); setInterval(sweep, 5 * 60000).unref();
 
 // ---------- schedule ----------
 try { schedule.start(); } // times come from settings; the admin console can change them live
@@ -31,21 +36,25 @@ const server = app.listen(config.port, async () => {
  try {
   console.log(`OddsDay API on http://localhost:${config.port} (${config.apiKey ? 'LIVE data' : 'DEMO data — add API_FOOTBALL_KEY for real games'})`);
   console.log(`Allowed browser origins: ${config.corsOrigins.join(', ')}`);
-  // First start of the day: make sure today's picks exist.
-  const today = engine.localDate(0);
-  // Demo mode: create a week of settled history so the track record page has something to show.
-  if (!config.apiKey && !db.prepare('SELECT 1 FROM predictions LIMIT 1').get()) {
-    for (let i = 7; i >= 0; i--) await engine.generateForDate(engine.localDate(-i), { backfill: true });
-  }
-  const has = d => db.prepare('SELECT 1 FROM runs WHERE kind = ? AND date = ? AND ok = 1 LIMIT 1').get('predict', d);
-  if (!has(today) || !has(engine.localDate(1))) {
-    console.log("Today's or tomorrow's predictions are missing — generating now...");
-    console.log(await engine.dailyRun().catch(e => e.message));
+  if (config.autoPredictions) {
+    // First start of the day: make sure today's picks exist.
+    const today = engine.localDate(0);
+    // Demo mode: create a week of settled history so the track record page has something to show.
+    if (!config.apiKey && !db.prepare('SELECT 1 FROM predictions LIMIT 1').get()) {
+      for (let i = 7; i >= 0; i--) await engine.generateForDate(engine.localDate(-i), { backfill: true });
+    }
+    const has = d => db.prepare('SELECT 1 FROM runs WHERE kind = ? AND date = ? AND ok = 1 LIMIT 1').get('predict', d);
+    if (!has(today) || !has(engine.localDate(1))) {
+      console.log("Today's or tomorrow's predictions are missing — generating now...");
+      console.log(await engine.dailyRun().catch(e => e.message));
+    }
   }
   telegram.startPolling().catch(e => console.error('telegram:', e.message));
   // Missed the 6:00 message (server was down)? Send it now; it only ever goes out once per day.
-  notify.morning(today).catch(e => console.error('notify:', e.message));
-  engine.settle().catch(e => console.error('settle:', e.message));
+  if (config.autoPredictions) {
+    notify.morning(engine.localDate(0)).catch(e => console.error('notify:', e.message));
+    engine.settle().catch(e => console.error('settle:', e.message));
+  }
  } catch (e) { console.error('Startup tasks failed (the API is still running):', e.message); }
 });
 

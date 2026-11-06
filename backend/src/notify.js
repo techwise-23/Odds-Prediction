@@ -70,4 +70,23 @@ async function codeAdded(accaId, platformKey, code) {
   return { sent };
 }
 
-module.exports = { morning, codeAdded };
+// The admin posted booking codes: tell users on each bookmaker that has a code, link or image for them.
+async function postAdded(post) {
+  if (!post || !telegram.enabled()) return { sent: 0 };
+  const what = post.kind === 'long' ? 'Long bet booking code' : "Today's booking code";
+  let sent = 0;
+  for (const u of linkedUsers('notify_codes')) {
+    const e = post.entries[u.platform];
+    if (!e) continue;
+    const pf = platformOf(u.platform);
+    const lines = [`🔑 <b>${h(what)}</b>${post.title ? ' · ' + h(post.title) : ''}`, `${h(pf.name)}:`];
+    if (e.code) lines.push(`<code>${h(e.code)}</code>`);
+    if (e.link) lines.push(`<a href="${h(e.link)}">Open the slip</a>`);
+    if (e.imageId) lines.push('<i>A slip screenshot is waiting in the app.</i>');
+    if (pf.url) lines.push(`\n<a href="${h(pf.url)}">Open ${h(pf.name)}</a>`);
+    if (await sendOnce(u, 'post', `${post.id}:${u.platform}`, lines.join('\n') + footer())) sent++;
+  }
+  return { sent };
+}
+
+module.exports = { morning, codeAdded, postAdded };

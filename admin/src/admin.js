@@ -64,44 +64,134 @@ function sweepRings(root) {
 }
 
 // ---------- admin: booking codes ----------
-// Market names as most Ghana bookmakers show them on the betslip.
-const BOOK = {
-  H: ['1X2', 'Home'], D: ['1X2', 'Draw'], A: ['1X2', 'Away'],
-  '1X': ['Double Chance', 'Home or Draw'], X2: ['Double Chance', 'Draw or Away'], '12': ['Double Chance', 'Home or Away'],
-  O15: ['Over/Under', 'Over 1.5'], U15: ['Over/Under', 'Under 1.5'], O25: ['Over/Under', 'Over 2.5'],
-  U25: ['Over/Under', 'Under 2.5'], O35: ['Over/Under', 'Over 3.5'], U35: ['Over/Under', 'Under 3.5'],
-  BTTS_Y: ['GG/NG', 'GG (Yes)'], BTTS_N: ['GG/NG', 'NG (No)'],
-};
+// The admin books the games on each betting app and posts the code here (typed, as a screenshot with the code as caption, or as a link).
+const post = { editing: null, kind: 'daily', imgs: {}, existing: null };
+const fmtWhen = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const toLocalInput = iso => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
-async function loadCodes() {
-  const { days } = await api('/api/admin/tickets');
-  const dayName = d => d === isoLocal(0) ? 'Today' : d === isoLocal(1) ? 'Tomorrow' : d;
-  $('#codes').innerHTML = days.map(day => `<h2 class="section-head">${dayName(day.date)}</h2>` + (day.tickets.length ? day.tickets.map(t => {
-    const live = t.legs.some(started);
-    const count = Object.keys(t.codes).length;
-    return `<form class="code-card" data-ticket="${t.id}">
-      <div class="code-card-head"><h3>${esc(t.name)}</h3><span>${t.legs.length} games, total ${t.total_odds.toFixed(2)}, ${count} of ${state.platforms.length} codes added</span></div>
-      <ol>${t.legs.map(l => { const [m, p] = BOOK[l.pick_code] || [l.market, l.pick];
-        return `<li><b>${esc(l.home)} v ${esc(l.away)}</b> <span class="muted-inline">${esc(l.league_name)}, ${time(l.kickoff)}</span><br>${esc(m)}: <b>${esc(p)}</b> <span class="muted-inline">our odds ${l.odds.toFixed(2)}</span></li>`; }).join('')}</ol>
-      <div class="code-grid">${state.platforms.map(p => `<label>${esc(p.name)}
-        <input name="${p.key}" value="${esc(t.codes[p.key] || '')}" placeholder="Paste code" autocomplete="off" ${live ? 'readonly' : ''}></label>`).join('')}</div>
-      <div class="code-save">
-        ${count ? '<p class="locked">Locked: this ticket won\'t change when predictions refresh.</p>' : '<span></span>'}
-        <span class="adm-user-btns">${live ? '<span class="muted-inline">Games started</span>' : '<button class="add solid" type="submit">Save codes</button>'}<button class="add danger" type="button" data-del-ticket="${t.id}">Delete ticket</button></span>
-      </div>
-    </form>`; }).join('') : '<div class="empty">No tickets for this day yet.</div>')).join('');
+// Shrinks a screenshot before upload so it stays small and fast.
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That file is not an image')); };
+    img.src = url;
+  });
 }
 
-document.addEventListener('submit', async e => {
-  const form = e.target.closest('[data-ticket]');
-  if (!form) return;
-  e.preventDefault();
-  const codes = Object.fromEntries(state.platforms.map(p => [p.key, form.elements[p.key].value]));
+async function adminImage(el, id) {
   try {
-    const r = await api(`/api/admin/tickets/${form.dataset.ticket}/codes`, { method: 'PUT', body: { codes } });
-    toast(`Saved ${Object.keys(r.codes).length} codes`);
-    loadCodes();
-  } catch (err) { toast(err.message); }
+    const res = await fetch(API_URL + '/api/post-images/' + id, { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} });
+    if (!res.ok) throw new Error(); el.src = URL.createObjectURL(await res.blob());
+  } catch { el.alt = 'image unavailable'; }
+}
+
+function composeHtml() {
+  const long = post.kind === 'long', ex = post.existing;
+  return `<form class="code-card" id="post-form" novalidate>
+    <div class="code-card-head"><h3>${post.editing ? 'Edit post' : 'New booking code'}</h3>${post.editing ? '<button class="link" type="button" data-post-cancel>Cancel edit</button>' : ''}</div>
+    <div class="post-kind-pick" role="radiogroup" aria-label="Type">
+      <button type="button" role="radio" aria-checked="${!long}" data-kind="daily" ${post.editing ? 'disabled' : ''}>Today's booking code</button>
+      <button type="button" role="radio" aria-checked="${long}" data-kind="long" ${post.editing ? 'disabled' : ''}>Long bet booking code</button>
+    </div>
+    <label class="fld">Title <small>(optional, e.g. "Safe 5 odds")</small><input name="title" maxlength="80" value="${esc(ex ? ex.title : '')}" autocomplete="off"></label>
+    ${long ? `<label class="fld">Kickoff of the LAST match <small>(the post disappears 3 hours after this)</small>
+      <input name="lastMatch" type="datetime-local" value="${ex && ex.lastMatchAt ? toLocalInput(ex.lastMatchAt) : ''}"></label>`
+      : `<p class="muted-inline">Today's codes are removed automatically at 12:00 noon the next day.</p>`}
+    <p class="muted-inline">For each betting company add a <b>code</b>, a <b>link</b>, or an <b>image</b> (the code you type becomes its caption). Leave a company empty if you don't cover it.</p>
+    <div class="post-books">${state.platforms.map(p => {
+      const e = ex && ex.entries[p.key], img = post.imgs[p.key], keep = e && e.imageId && img !== null && !(img === null);
+      return `<fieldset class="post-book" data-book="${esc(p.key)}"><legend>${esc(p.name)}</legend>
+        <input name="code-${esc(p.key)}" placeholder="Booking code" maxlength="60" autocomplete="off" value="${esc(e ? e.code : '')}">
+        <input name="link-${esc(p.key)}" type="url" placeholder="…or paste a link" autocomplete="off" value="${esc(e ? e.link : '')}">
+        <div class="post-img-row">
+          <label class="add">Add image<input type="file" accept="image/*" hidden data-file="${esc(p.key)}"></label>
+          <span class="post-thumb" data-thumb="${esc(p.key)}">${img ? `<img src="${img}" alt=""><button type="button" class="link" data-img-clear="${esc(p.key)}">Remove</button>`
+            : (e && e.imageId && img === undefined ? `<img data-existing="${esc(e.imageId)}" alt=""><button type="button" class="link" data-img-clear="${esc(p.key)}">Remove</button>` : '')}</span>
+        </div></fieldset>`; }).join('')}</div>
+    <p class="form-error" role="alert"></p>
+    <div class="code-save"><span></span><button class="add solid" type="submit">${post.editing ? 'Save changes' : 'Post'}</button></div>
+  </form>`;
+}
+
+async function loadCodes() {
+  const r = await api('/api/admin/posts');
+  state.platforms = r.platforms;
+  const list = r.posts.length ? r.posts.map(p => {
+    const names = state.platforms.filter(b => p.entries[b.key]).map(b => esc(b.name)).join(', ');
+    const when = p.kind === 'long' ? `until the last match, ${esc(fmtWhen(p.lastMatchAt))}` : `removed ${esc(fmtWhen(p.expiresAt))}`;
+    return `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(p.title || (p.kind === 'long' ? 'Long bet' : "Today's code"))}</h3>
+      <span>${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
+      <div class="adm-user-btns"><button class="add" data-post-edit="${p.id}">Edit</button><button class="add danger" data-post-del="${p.id}">Delete</button></div></article>`;
+  }).join('') : '<div class="empty">Nothing posted yet. Users will see "not posted yet" until you add a code.</div>';
+  postCache = r.posts;
+  $('#codes').innerHTML = composeHtml() + '<h2 class="section-head">Live posts</h2>' + list;
+  $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
+}
+let postCache = [];
+function redrawCompose() {
+  const f = $('#post-form'), keep = f ? Object.fromEntries([...new FormData(f)].filter(([k]) => /^(title|lastMatch|code-|link-)/.test(k))) : {};
+  const holder = document.createElement('div'); holder.innerHTML = composeHtml();
+  if (f) f.replaceWith(holder.firstElementChild);
+  const nf = $('#post-form');
+  for (const [k, v] of Object.entries(keep)) { const el = nf.elements[k]; if (el && v !== '') el.value = v; }
+  $$('img[data-existing]', nf).forEach(i => adminImage(i, i.dataset.existing));
+}
+
+document.addEventListener('click', async e => {
+  const kind = e.target.closest('[data-kind]'), clr = e.target.closest('[data-img-clear]'), ed = e.target.closest('[data-post-edit]'),
+    del = e.target.closest('[data-post-del]'), cancel = e.target.closest('[data-post-cancel]');
+  try {
+    if (kind) { post.kind = kind.dataset.kind; return redrawCompose(); }
+    if (clr) { post.imgs[clr.dataset.imgClear] = null; return redrawCompose(); }
+    if (cancel) { Object.assign(post, { editing: null, existing: null, imgs: {} }); return loadCodes(); }
+    if (ed) {
+      const p = postCache.find(x => x.id === +ed.dataset.postEdit); if (!p) return;
+      Object.assign(post, { editing: p.id, kind: p.kind, existing: p, imgs: {} }); await loadCodes(); window.scrollTo(0, 0);
+    }
+    if (del) {
+      if (!confirm('Delete this post? Users will stop seeing it straight away.')) return;
+      await api('/api/admin/posts/' + del.dataset.postDel, { method: 'DELETE' }); toast('Deleted'); loadCodes();
+    }
+  } catch (err) { toast(err.message, 5000); }
+});
+
+document.addEventListener('change', async e => {
+  const inp = e.target.closest('[data-file]'); if (!inp || !inp.files[0]) return;
+  try { post.imgs[inp.dataset.file] = await shrinkImage(inp.files[0]); redrawCompose(); }
+  catch (err) { toast(err.message, 4000); }
+});
+
+document.addEventListener('submit', async e => {
+  const form = e.target.closest('#post-form'); if (!form) return;
+  e.preventDefault();
+  const err = form.querySelector('.form-error'), btn = form.querySelector('[type=submit]'); err.textContent = '';
+  const ex = post.existing, entries = {};
+  for (const p of state.platforms) {
+    const code = form.elements['code-' + p.key].value.trim(), link = form.elements['link-' + p.key].value.trim();
+    const img = post.imgs[p.key], old = ex && ex.entries[p.key] && ex.entries[p.key].imageId;
+    const entry = { code, link };
+    if (img) entry.image = img; else if (old && img === undefined) entry.keepImage = old;
+    if (code || link || entry.image || entry.keepImage) entries[p.key] = entry;
+  }
+  const body = { kind: post.kind, title: form.elements.title.value, entries };
+  if (post.kind === 'long') {
+    const v = form.elements.lastMatch.value;
+    if (!v) { err.textContent = 'Enter the kickoff time of the last match.'; return; }
+    body.lastMatchAt = new Date(v).toISOString();
+  }
+  btn.disabled = true;
+  try {
+    await api(post.editing ? '/api/admin/posts/' + post.editing : '/api/admin/posts', { method: post.editing ? 'PUT' : 'POST', body });
+    toast(post.editing ? 'Saved' : 'Posted. Users can see it now.');
+    Object.assign(post, { editing: null, existing: null, imgs: {} }); loadCodes();
+  } catch (x) { err.textContent = x.message; }
+  btn.disabled = false;
 });
 
 // ---------- admin dashboard ----------
@@ -132,8 +222,8 @@ function setSub(sub) {
   if (sub === 'activity') loadActivity();
   if (sub === 'settings') loadSettings();
 }
-function loadAdmin() { setSub(state.sub || 'overview'); }
-$('#adm-refresh').addEventListener('click', () => setSub(state.sub || 'overview'));
+function loadAdmin() { setSub(state.sub || 'codes'); }
+$('#adm-refresh').addEventListener('click', () => setSub(state.sub || 'codes'));
 
 async function loadOverview() {
   const el = $('#adm-overview');

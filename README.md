@@ -20,6 +20,19 @@ oddsday/
 The admin console has its **own login and session**. Being logged in to the public app does not log you in
 to the admin, and the admin API refuses public-app sessions.
 
+## How booking codes work now
+
+The system no longer generates tickets or codes. **You** book the games on each betting app and post the code in the admin console
+(Booking codes tab). There are two kinds of post:
+
+- **Today's booking code**: removed automatically at 12:00 noon the next day (change with `POST_EXPIRE_HOUR`, default `12`, in `TZ_NAME` time).
+- **Long bet booking code**: you enter the kickoff of the **last match**; the post stays until 3 hours after that (`LONG_BET_GRACE_HOURS`).
+
+For each betting company you can add a **code**, a **link**, or an **image** (the code you type becomes its caption). Users tap a post,
+choose their bookmaker, and see that company's code. Expired posts are deleted every 5 minutes.
+Set `AUTO_PREDICTIONS=1` on the backend to bring the old generated picks back (the public app no longer shows them).
+Note: `npm run build:phone` (the single-file offline app) was not updated for booking codes.
+
 ## Run it locally
 
 Needs Node.js 20+.

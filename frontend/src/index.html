@@ -79,10 +79,9 @@
         </svg>
         <div class="brand-text">
           <div class="logo">Odds<span>Day</span></div>
-          <small id="top-date">Daily picks</small>
+          <small id="top-date">Booking codes</small>
         </div>
       </div>
-      <span id="demo-pill" class="pill" hidden title="Sample games are shown. Add your API-Football key to switch to real fixtures.">Sample games</span>
       <button id="menu-btn" class="icon-btn" aria-label="Account menu" aria-haspopup="true">
         <span id="avatar"></span>
       </button>
@@ -94,109 +93,18 @@
     </header>
 
     <main>
-      <!-- HOME DASHBOARD -->
-      <section data-panel="home" class="dash" aria-label="Dashboard">
-        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-          <defs>
-            <linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#F7E08E"/><stop offset=".45" stop-color="#D4AF37"/><stop offset="1" stop-color="#A97F1C"/>
-            </linearGradient>
-          </defs>
-        </svg>
-
-        <div class="hud hero">
-          <p class="hello" id="d-hello"></p>
-          <p class="next-label" id="d-next-label">Next kickoff in</p>
-          <div class="countdown" id="d-countdown" aria-live="off">
-            <div><b data-u="h">--</b><small>hours</small></div><i>:</i>
-            <div><b data-u="m">--</b><small>min</small></div><i>:</i>
-            <div><b data-u="s">--</b><small>sec</small></div>
-          </div>
-          <p class="next-match" id="d-next-match"></p>
-          <div class="hero-stats" id="d-totals"></div>
-          <div class="platform-bar compact">
-            <span id="d-platform-label">Codes for</span>
-            <div class="platforms" data-platform-group role="radiogroup" aria-labelledby="d-platform-label"></div>
-          </div>
-        </div>
-
-        <div class="hud potd" id="d-potd"></div>
-
-        <div class="gauges" id="d-gauges"></div>
-
-        <div class="hud wide">
-          <div class="hud-head"><h2>Today's tickets</h2><button class="link" data-goto="long">See all long bets</button></div>
-          <div class="ticket-strip" id="d-tickets"></div>
-        </div>
-
-        <div class="hud live">
-          <div class="hud-head"><h2>Live and results</h2><span class="pulse" aria-hidden="true"></span></div>
-          <div id="d-live"></div>
-        </div>
-
-        <div class="hud form">
-          <div class="hud-head"><h2>Form</h2><span class="muted-inline">last 14 days</span></div>
-          <div id="d-form"></div>
-        </div>
-
-        <div class="hud wide slipcalc" id="d-slip"></div>
-      </section>
-
-      <!-- PICKS -->
-      <section data-panel="picks" hidden>
-        <div class="day-bar">
-          <div class="days" id="days"></div>
-          <p id="day-summary" class="muted"></p>
-        </div>
-        <div class="platform-bar">
-          <span id="platform-label">Codes for</span>
-          <div id="platforms" class="platforms" data-platform-group role="radiogroup" aria-labelledby="platform-label"></div>
-        </div>
-        <div class="tier-tabs" role="tablist" id="tier-tabs">
-          <button role="tab" data-tier="low" class="t-low">Low<small>1.15–1.60</small></button>
-          <button role="tab" data-tier="medium" class="t-medium">Medium<small>1.60–2.50</small></button>
-          <button role="tab" data-tier="high" class="t-high">High<small>2.50+</small></button>
-          <button role="tab" data-tier="long" class="t-long">Long bets<small>50 to 1000+ odds</small></button>
-        </div>
-        <div id="picks-list" class="list" aria-live="polite"></div>
-      </section>
-
-      <!-- SLIP -->
-      <section data-panel="slip" hidden>
-        <div class="slip-head">
-          <div>
-            <h2>My slip</h2>
-            <p class="muted">Picks you've saved. Total odds count only games that haven't started.</p>
-          </div>
-          <div class="slip-total"><small>Total odds</small><b id="slip-odds">—</b></div>
-        </div>
-        <div id="slip-list" class="list"></div>
-      </section>
-
-      <!-- RECORD -->
-      <section data-panel="record" hidden>
-        <h2>Track record</h2>
-        <p class="muted">Settled picks from the last 30 days. Profit is in units, staking 1 unit per pick.</p>
-        <div id="record" class="record"></div>
-      </section>
-      </main>
-
-    <!-- Bottom tab bar (phone app style) -->
-    <nav class="tabs" aria-label="Main">
-      <button data-view="home" class="active">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h4.5v-6h4v6h4.5V9.5"/></svg><span>Home</span></button>
-      <button data-view="picks">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m12 7.5 4 3-1.5 4.7h-5L8 10.5z"/></svg><span>Picks</span></button>
-      <button data-view="slip">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span>Slip</span><b id="slip-count" class="count" hidden></b></button>
-      <button data-view="record">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg><span>Record</span></button>
-    </nav>
+      <div id="posts" aria-live="polite"></div>
+    </main>
 
     <footer class="foot">
-      <p>18+ only. Football is unpredictable and these picks can lose. Only stake what you can afford to lose. Need help? Talk to someone you trust or a problem-gambling service.</p>
+      <p>18+ only. Betting is risky and you can lose. Only stake what you can afford to lose. Need help? Talk to someone you trust or a problem-gambling service.</p>
     </footer>
   </div>
+
+  <dialog id="post-dialog" class="tg-dialog post-dialog" aria-labelledby="post-title">
+    <div class="tg-head"><h2 id="post-title">Booking code</h2><button type="button" class="icon-btn post-close" aria-label="Close">✕</button></div>
+    <div id="post-body"></div>
+  </dialog>
 
   <dialog id="tg-dialog" class="tg-dialog" aria-labelledby="tg-title">
     <div class="tg-head"><h2 id="tg-title">Telegram alerts</h2><button type="button" class="icon-btn tg-close" aria-label="Close">✕</button></div>

@@ -6,7 +6,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY src ./src
-# On Railway, attach a Volume mounted at /data (Railway does not allow the VOLUME instruction).
-ENV NODE_ENV=production DB_FILE=/data/app.db
+# The database goes on the Railway Volume automatically (the app reads RAILWAY_VOLUME_MOUNT_PATH), wherever it is mounted.
+# Railway does not allow the VOLUME instruction, so add one in the service settings. Set DB_FILE only to override.
+ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["node", "src/server.js"]

@@ -72,7 +72,7 @@ router.put('/tickets/:id/codes', adminAuth, (req, res) => {
 // ---------- booking-code posts ----------
 const posts = require('../posts');
 const postErr = (res, e) => res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not save the post' });
-router.get('/posts', adminAuth, (req, res) => { posts.cleanup(); res.json({ posts: posts.active(), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })) }); });
+router.get('/posts', adminAuth, (req, res) => { posts.cleanup(); res.json({ posts: posts.active(), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), storage: { persistent: config.persistentStorage } }); });
 router.post('/posts', adminAuth, (req, res) => {
   try {
     const id = posts.create({ kind: req.body.kind, title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, premium: !!req.body.premium, by: displayPhone(req.user.phone) });

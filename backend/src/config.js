@@ -4,6 +4,23 @@ const { normalizePhone } = require('./phone');
 
 const env = process.env;
 
+// Where the database lives. Users, codes and payments are stored in this one file, so it MUST be on a persistent disk:
+// a container's own filesystem is wiped on every deploy, which is why accounts "disappeared" after each GitHub update.
+// Order: DB_FILE if set, else the Railway Volume (Railway tells us where it is mounted), else ./data/app.db.
+const nodePath = require('path');
+const dbPathResolved = env.DB_FILE || (env.RAILWAY_VOLUME_MOUNT_PATH ? nodePath.join(env.RAILWAY_VOLUME_MOUNT_PATH, 'app.db') : nodePath.join(__dirname, '..', 'data', 'app.db'));
+
+// Is that path on a real mounted disk? (A Volume is a separate mount; the container's own disk shares a device with "/".)
+function storageIsPersistent(file) {
+  try {
+    const fs = require('fs');
+    const dir = nodePath.dirname(file);
+    if (env.RAILWAY_VOLUME_MOUNT_PATH && nodePath.resolve(file).startsWith(nodePath.resolve(env.RAILWAY_VOLUME_MOUNT_PATH))) return true;
+    fs.mkdirSync(dir, { recursive: true });
+    return fs.statSync(dir).dev !== fs.statSync('/').dev;
+  } catch { return true; } // can't tell (e.g. Windows): don't raise a false alarm
+}
+
 // Session secret. Use JWT_SECRET when it is set to something strong. Otherwise create a random one once and keep it
 // next to the database (on the Railway Volume), so a missing variable never stops the app from starting and logins
 // survive redeploys. Set JWT_SECRET yourself if you ever run more than one instance.
@@ -12,7 +29,7 @@ function resolveJwtSecret() {
   if (given.length >= 24 && !/^(change-me|replace-with)/.test(given)) return { value: given, source: 'env' };
   const fs = require('fs');
   const path = require('path');
-  const dbPath = env.DB_FILE || path.join(__dirname, '..', 'data', 'app.db');
+  const dbPath = dbPathResolved;
   const file = path.join(path.dirname(dbPath), '.jwt_secret');
   try {
     const saved = fs.readFileSync(file, 'utf8').trim();
@@ -45,7 +62,9 @@ module.exports = {
   cookieDomain: env.COOKIE_DOMAIN || undefined,
   // Optional extra secret for the admin console login (strongly recommended in production).
   adminPasscode: env.ADMIN_PASSCODE || '',
-  dbFile: env.DB_FILE || require('path').join(__dirname, '..', 'data', 'app.db'),
+  dbFile: dbPathResolved,
+  // false = the database is on the container's own disk and will be erased by the next deploy.
+  persistentStorage: storageIsPersistent(dbPathResolved),
 
   // API-Football (https://www.api-football.com). Leave empty to run in DEMO mode.
   apiKey: env.API_FOOTBALL_KEY || '',

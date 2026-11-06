@@ -12,6 +12,11 @@ const telegram = require('./telegram');
 const notify = require('./notify');
 const schedule = require('./schedule');
 
+if (process.env.NODE_ENV === 'production' && !config.persistentStorage) {
+  console.error('\n!!! WARNING: the database (' + config.dbFile + ') is NOT on a persistent Volume.\n' +
+    '!!! Every deploy will ERASE all users, codes and payments. In Railway: backend service -> Volumes -> add a Volume\n' +
+    '!!! (mount path /data), then redeploy. Until then, accounts are lost on each update.\n');
+}
 // A missing or weak JWT_SECRET used to stop the app from starting (a crash loop on Railway). Now a strong secret is
 // created and stored next to the database instead; just warn so it can be set properly.
 if (config.jwtSecretSource !== 'env') {

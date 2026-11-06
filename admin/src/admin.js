@@ -139,7 +139,9 @@ async function loadCodes() {
       ${m.enabled ? '' : '<p class="form-error">Paystack is not connected. Add PAYSTACK_SECRET_KEY on the backend.</p>'}
       ${m.recent.length ? `<ul class="pay-list">${m.recent.map(x => `<li><span>${esc(x.phone)} · ${esc(x.plan)}${x.channel ? ' · ' + esc(x.channel.replace('_', ' ')) : ''}</span><b>${f(x.amount)}</b></li>`).join('')}</ul>` : '<p class="muted-inline">No payments yet.</p>'}</div>`;
   } catch { /* summary is optional */ }
-  $('#codes').innerHTML = composeHtml() + '<h2 class="section-head">Live posts</h2>' + list + money;
+  const warn = r.storage && !r.storage.persistent ? `<div class="storage-warn" role="alert"><b>Accounts will be erased on the next deploy.</b>
+    The database is not on a Volume. In Railway open the backend service, go to Volumes, add one with mount path <code>/data</code>, then redeploy. Users who sign up before that will be lost.</div>` : '';
+  $('#codes').innerHTML = warn + composeHtml() + '<h2 class="section-head">Live posts</h2>' + list + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];

@@ -15,12 +15,14 @@ async function api(path, opts = {}) {
     if (r.status >= 400) throw new Error(r.data.error || 'Something went wrong. Try again.');
     return r.data;
   }
-  const res = await fetch(API_URL + path, {
+  let res;
+  try { res = await fetch(API_URL + path, {
     method: opts.method || 'GET',
     headers: opts.body ? { 'Content-Type': 'application/json' } : {},
     body: opts.body ? JSON.stringify(opts.body) : undefined,
     credentials: 'include',
-  });
+  }); }
+  catch { throw new Error(API_URL ? `Can't reach the server at ${API_URL}. Check that the backend is running, API_URL is its public https address, and CORS_ORIGINS on the backend lists this site.` : "Can't reach the server. API_URL is not set for this site."); }
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && path !== '/api/login') { showAuth(); throw new Error('Please log in'); }
   if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');

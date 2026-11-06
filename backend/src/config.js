@@ -24,15 +24,24 @@ function resolveJwtSecret() {
 }
 const jwt = resolveJwtSecret();
 
+// Accept addresses typed the lazy way ("app.up.railway.app", trailing slash, odd case) so CORS still matches the browser's Origin.
+const normOrigin = v => {
+  v = String(v || '').trim().replace(/\/+$/, '');
+  if (!v) return '';
+  if (!/^https?:\/\//i.test(v)) v = (/^(localhost|127\.|\[::1\])/.test(v) ? 'http://' : 'https://') + v;
+  try { return new URL(v).origin; } catch { return v; }
+};
+
 module.exports = {
   port: Number(env.PORT || 3000),
   jwtSecret: jwt.value,
   jwtSecretSource: jwt.source,
   // Browser apps allowed to call this API (comma separated origins): the public site and the admin console.
-  corsOrigins: (env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean),
+  corsOrigins: [...new Set((env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174').split(',').concat(env.CORS_ORIGINS ? [env.SITE_URL, env.ADMIN_URL] : []).map(normOrigin).filter(Boolean))],
   // Cookies: 'lax' when the apps share a registrable domain (app.x.com, admin.x.com, api.x.com);
   // 'none' when they live on unrelated domains (e.g. separate *.up.railway.app hosts). 'none' needs HTTPS.
-  cookieSameSite: env.COOKIE_SAMESITE || 'lax',
+  // In production the sites are usually on separate *.up.railway.app hosts (cross-site), where 'lax' cookies are dropped and login never sticks.
+  cookieSameSite: env.COOKIE_SAMESITE || (env.NODE_ENV === 'production' ? 'none' : 'lax'),
   cookieDomain: env.COOKIE_DOMAIN || undefined,
   // Optional extra secret for the admin console login (strongly recommended in production).
   adminPasscode: env.ADMIN_PASSCODE || '',

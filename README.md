@@ -66,6 +66,11 @@ and the build fails.
 Each folder has its own `Dockerfile` and `railway.json`. The frontend and admin are plain static files in `src/`,
 so Netlify, Cloudflare Pages or any static host also works: just edit `src/config.js`.
 
+**Signup says "Failed to fetch"?** The browser can't reach the API. Check, in order: (1) the frontend service has `API_URL` set to the
+backend's public address; (2) the backend has `CORS_ORIGINS` listing the frontend and admin addresses; (3) the backend is
+running (open `<backend address>/health`). Addresses may be typed with or without `https://` or a trailing slash. In production
+cookies default to `SameSite=none`, which works across separate `*.up.railway.app` hosts.
+
 **Set an admin passcode in production** (`ADMIN_PASSCODE`, or in Settings). Logins use a phone number only, so without a passcode anyone who knows
 an admin's number can open the admin console. The admin overview warns you until it is set.
 

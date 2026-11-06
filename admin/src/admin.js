@@ -12,8 +12,10 @@ const empty = (title, sub) => `<div class="empty"><b>${esc(title)}</b><br>${esc(
 function toast(msg, ms = 2400) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), ms); }
 
 async function api(path, opts = {}) {
-  const res = await fetch(API_URL + path, { method: opts.method || 'GET', headers: opts.body ? { 'Content-Type': 'application/json' } : {},
-    body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: 'include' });
+  let res;
+  try { res = await fetch(API_URL + path, { method: opts.method || 'GET', headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+    body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: 'include' }); }
+  catch { throw new Error(API_URL ? `Can't reach the server at ${API_URL}. Check that the backend is running, API_URL is its public https address, and CORS_ORIGINS on the backend lists this site.` : "Can't reach the server. API_URL is not set for this site."); }
   const data = await res.json().catch(() => ({}));
   const isLogin = path === '/api/admin/login';
   if (res.status === 401 && !isLogin) { showLogin(); throw new Error('Please log in'); }

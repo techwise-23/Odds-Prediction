@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, 'src');
+// "api.up.railway.app" (no https://) would be treated as a relative path by the browser: add the scheme and drop any trailing slash.
+const apiUrl = (() => { let v = (process.env.API_URL || '').trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) v = (/^(localhost|127\.)/.test(v) ? 'http://' : 'https://') + v; return v; })();
 if (process.env.NODE_ENV === 'production' && !process.env.API_URL) console.warn('WARNING: API_URL is not set, so the page will call http://localhost:3000 and fail. Set API_URL to the backend address.');
 const port = Number(process.env.PORT || 5173);
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -15,7 +17,7 @@ http.createServer((req, res) => {
   if (url === '/health') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}'); }
   if (url === '/config.js' && process.env.API_URL !== undefined) {
     res.writeHead(200, { 'Content-Type': types['.js'], 'Cache-Control': 'no-store' });
-    return res.end(`window.ODDSDAY_CONFIG = ${JSON.stringify({ apiUrl: process.env.API_URL })};\n`);
+    return res.end(`window.ODDSDAY_CONFIG = ${JSON.stringify({ apiUrl })};\n`);
   }
   let file = path.join(root, url === '/' ? 'index.html' : url);
   if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
@@ -23,4 +25,4 @@ http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream',
     'Cache-Control': file.endsWith('.html') ? 'no-cache' : 'public, max-age=300' });
   fs.createReadStream(file).pipe(res);
-}).listen(port, () => console.log(`OddsDay app on http://localhost:${port} (API: ${process.env.API_URL ?? 'from src/config.js'})`));
+}).listen(port, () => console.log(`OddsDay app on http://localhost:${port} (API: ${apiUrl || 'from src/config.js'})`));

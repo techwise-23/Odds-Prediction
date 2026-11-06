@@ -100,6 +100,7 @@ function composeHtml() {
       <button type="button" role="radio" aria-checked="${long}" data-kind="long" ${post.editing ? 'disabled' : ''}>Long bet booking code</button>
     </div>
     <label class="fld">Title <small>(optional, e.g. "Safe 5 odds")</small><input name="title" maxlength="80" value="${esc(ex ? ex.title : '')}" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" name="premium" ${ex && ex.premium ? 'checked' : ''}> <span><b>Premium only</b> <small>Locked for free users. Paying members see the codes.</small></span></label>
     ${long ? `<label class="fld">Kickoff of the LAST match <small>(the post disappears 3 hours after this)</small>
       <input name="lastMatch" type="datetime-local" value="${ex && ex.lastMatchAt ? toLocalInput(ex.lastMatchAt) : ''}"></label>`
       : `<p class="muted-inline">Today's codes are removed automatically at 12:00 noon the next day.</p>`}
@@ -126,11 +127,19 @@ async function loadCodes() {
     const names = state.platforms.filter(b => p.entries[b.key]).map(b => esc(b.name)).join(', ');
     const when = p.kind === 'long' ? `until the last match, ${esc(fmtWhen(p.lastMatchAt))}` : `removed ${esc(fmtWhen(p.expiresAt))}`;
     return `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(p.title || (p.kind === 'long' ? 'Long bet' : "Today's code"))}</h3>
-      <span>${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
+      <span>${p.premium ? '<b class="vip-tag">Premium</b> ' : ''}${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
       <div class="adm-user-btns"><button class="add" data-post-edit="${p.id}">Edit</button><button class="add danger" data-post-del="${p.id}">Delete</button></div></article>`;
   }).join('') : '<div class="empty">Nothing posted yet. Users will see "not posted yet" until you add a code.</div>';
   postCache = r.posts;
-  $('#codes').innerHTML = composeHtml() + '<h2 class="section-head">Live posts</h2>' + list;
+  let money = '';
+  try {
+    const m = await api('/api/admin/premium'), cur = m.currency, f = v => `${cur} ${(v / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    money = `<h2 class="section-head">Premium</h2><div class="code-card"><div class="stat-row"><div><b>${m.active}</b><span>Active members</span></div>
+      <div><b>${f(m.week.a)}</b><span>Last 7 days (${m.week.n})</span></div><div><b>${f(m.month.a)}</b><span>Last 30 days (${m.month.n})</span></div></div>
+      ${m.enabled ? '' : '<p class="form-error">Paystack is not connected. Add PAYSTACK_SECRET_KEY on the backend.</p>'}
+      ${m.recent.length ? `<ul class="pay-list">${m.recent.map(x => `<li><span>${esc(x.phone)} · ${esc(x.plan)}${x.channel ? ' · ' + esc(x.channel.replace('_', ' ')) : ''}</span><b>${f(x.amount)}</b></li>`).join('')}</ul>` : '<p class="muted-inline">No payments yet.</p>'}</div>`;
+  } catch { /* summary is optional */ }
+  $('#codes').innerHTML = composeHtml() + '<h2 class="section-head">Live posts</h2>' + list + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
@@ -179,7 +188,7 @@ document.addEventListener('submit', async e => {
     if (img) entry.image = img; else if (old && img === undefined) entry.keepImage = old;
     if (code || link || entry.image || entry.keepImage) entries[p.key] = entry;
   }
-  const body = { kind: post.kind, title: form.elements.title.value, entries };
+  const body = { kind: post.kind, title: form.elements.title.value, entries, premium: form.elements.premium.checked };
   if (post.kind === 'long') {
     const v = form.elements.lastMatch.value;
     if (!v) { err.textContent = 'Enter the kickoff time of the last match.'; return; }

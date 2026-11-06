@@ -57,7 +57,7 @@ function normaliseEntries(entries) {
   return out;
 }
 
-function create({ kind, title, lastMatchAt, entries, by }) {
+function create({ kind, title, lastMatchAt, entries, premium, by }) {
   if (!['daily', 'long'].includes(kind)) throw Object.assign(new Error('Choose Today or Long bet'), { status: 400 });
   let last = null;
   if (kind === 'long') {
@@ -70,14 +70,14 @@ function create({ kind, title, lastMatchAt, entries, by }) {
   const expires = expiryFor(kind, date, last);
   if (expires <= new Date()) throw Object.assign(new Error('That time has already passed'), { status: 400 });
   return db.transaction(() => {
-    const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by) VALUES (?,?,?,?,?,?)')
-      .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null);
+    const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by, premium) VALUES (?,?,?,?,?,?,?)')
+      .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null, premium ? 1 : 0);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
     return Number(id);
   })();
 }
 
-function update(id, { title, lastMatchAt, entries }) {
+function update(id, { title, lastMatchAt, entries, premium }) {
   const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(id);
   if (!post) throw Object.assign(new Error('Post not found'), { status: 404 });
   const rows = normaliseEntries(entries);
@@ -89,7 +89,7 @@ function update(id, { title, lastMatchAt, entries }) {
     last = d.toISOString(); expires = expiryFor('long', post.date, d).toISOString();
   }
   db.transaction(() => {
-    db.prepare('UPDATE posts SET title = ?, last_match_at = ?, expires_at = ? WHERE id = ?').run(String(title ?? post.title).trim().slice(0, 80), last, expires, id);
+    db.prepare('UPDATE posts SET title = ?, last_match_at = ?, expires_at = ?, premium = ? WHERE id = ?').run(String(title ?? post.title).trim().slice(0, 80), last, expires, premium === undefined ? post.premium : (premium ? 1 : 0), id);
     db.prepare('DELETE FROM post_entries WHERE post_id = ?').run(id);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
   })();
@@ -110,16 +110,25 @@ function cleanup() {
   return r.changes;
 }
 
-// Active posts with their per-bookmaker entries, newest first.
-function active() {
+// Active posts with their per-bookmaker entries, newest first. Premium posts are returned LOCKED (no codes, links or
+// images, only which bookmakers are covered) unless the viewer has premium access.
+function active({ premium = true } = {}) {
   const now = new Date().toISOString();
-  return db.prepare('SELECT * FROM posts WHERE expires_at > ? ORDER BY id DESC').all(now).map(p => ({
-    id: p.id, kind: p.kind, title: p.title, date: p.date, lastMatchAt: p.last_match_at, expiresAt: p.expires_at, createdAt: p.created_at,
-    entries: Object.fromEntries(db.prepare('SELECT platform, code, link, image_id FROM post_entries WHERE post_id = ?').all(p.id)
-      .map(e => [e.platform, { code: e.code, link: e.link, imageId: e.image_id }])),
-  }));
+  return db.prepare('SELECT * FROM posts WHERE expires_at > ? ORDER BY id DESC').all(now).map(p => {
+    const rows = db.prepare('SELECT platform, code, link, image_id FROM post_entries WHERE post_id = ?').all(p.id);
+    const locked = !!p.premium && !premium;
+    return {
+      id: p.id, kind: p.kind, title: p.title, date: p.date, lastMatchAt: p.last_match_at, expiresAt: p.expires_at, createdAt: p.created_at,
+      premium: !!p.premium, locked,
+      books: rows.map(e => e.platform),
+      entries: locked ? {} : Object.fromEntries(rows.map(e => [e.platform, { code: e.code, link: e.link, imageId: e.image_id }])),
+    };
+  });
 }
+
+// Is this image part of a premium post?
+const imageIsPremium = id => !!db.prepare('SELECT 1 FROM post_entries e JOIN posts p ON p.id = e.post_id WHERE e.image_id = ? AND p.premium = 1').get(id);
 
 const image = id => db.prepare('SELECT mime, data FROM post_images WHERE id = ?').get(id) || null;
 
-module.exports = { create, update, remove, cleanup, active, image, localDate };
+module.exports = { create, update, remove, cleanup, active, image, imageIsPremium, localDate };

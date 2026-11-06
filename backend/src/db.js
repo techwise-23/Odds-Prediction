@@ -149,4 +149,22 @@ db.exec(`CREATE TABLE IF NOT EXISTS post_images (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 )`);
 
+// Premium subscriptions (paid through Paystack).
+if (!userCols.includes('premium_until')) db.exec('ALTER TABLE users ADD COLUMN premium_until TEXT');
+const postCols = db.prepare('PRAGMA table_info(posts)').all().map(c => c.name);
+if (!postCols.includes('premium')) db.exec('ALTER TABLE posts ADD COLUMN premium INTEGER NOT NULL DEFAULT 0');
+db.exec(`CREATE TABLE IF NOT EXISTS payments (
+  reference TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL,
+  days INTEGER NOT NULL,
+  amount INTEGER NOT NULL,            -- pesewas / kobo: the smallest unit, as Paystack uses
+  currency TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending | success
+  channel TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  paid_at TEXT
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)');
+
 module.exports = db;

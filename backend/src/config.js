@@ -67,6 +67,18 @@ module.exports = {
   // The old system-generated predictions and tickets are OFF. Set AUTO_PREDICTIONS=1 to bring them back.
   autoPredictions: env.AUTO_PREDICTIONS === '1',
 
+  // Premium subscription, paid with Paystack (card or mobile money). Prices are in whole cedis (or the currency below).
+  paystack: {
+    secret: env.PAYSTACK_SECRET_KEY || '',
+    api: (env.PAYSTACK_API_BASE || 'https://api.paystack.co').replace(/\/+$/, ''),
+    currency: (env.PAYSTACK_CURRENCY || 'GHS').toUpperCase(),
+  },
+  premiumPlans: [
+    { key: 'daily', name: 'Daily', days: 1, price: Number(env.PREMIUM_PRICE_DAILY || 5) },
+    { key: 'weekly', name: 'Weekly', days: 7, price: Number(env.PREMIUM_PRICE_WEEKLY || 25), best: false },
+    { key: 'monthly', name: 'Monthly', days: 30, price: Number(env.PREMIUM_PRICE_MONTHLY || 80), best: true },
+  ],
+
   // Telegram alerts (optional). Create a bot with @BotFather and put its token here.
   telegramToken: env.TELEGRAM_BOT_TOKEN || '',
   telegramApi: env.TELEGRAM_API_BASE || 'https://api.telegram.org', // only changed for tests

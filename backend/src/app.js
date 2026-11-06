@@ -13,7 +13,9 @@ if (trustProxy) app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustPr
 
 app.disable('x-powered-by');
 app.use(cors);
-const small = express.json({ limit: '100kb' }), large = express.json({ limit: '9mb' }); // 9 MB only where admins upload screenshots
+// The raw body is kept for the Paystack webhook, whose signature is computed over the exact bytes.
+const keepRaw = (req, _res, buf) => { if (req.originalUrl.startsWith('/api/paystack/webhook')) req.rawBody = buf; };
+const small = express.json({ limit: '100kb', verify: keepRaw }), large = express.json({ limit: '9mb' }); // 9 MB only where admins upload screenshots
 app.use((req, res, next) => (req.path.startsWith('/api/admin/posts') ? large : small)(req, res, next));
 app.use(cookieParser());
 
@@ -23,6 +25,7 @@ app.get('/', (req, res) => res.json({ name: 'OddsDay API', ok: true }));
 
 app.use('/api/admin', require('./routes/admin'));   // admin console (own login + session)
 app.use('/api', require('./routes/auth'));          // sign up, log in, account settings, Telegram
+app.use('/api', require('./routes/premium'));       // premium plans, Paystack checkout, webhook
 app.use('/api', require('./routes/picks'));         // picks, tickets, dashboard, record, slip
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));

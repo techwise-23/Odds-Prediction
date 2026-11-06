@@ -33,6 +33,25 @@ choose their bookmaker, and see that company's code. Expired posts are deleted e
 Set `AUTO_PREDICTIONS=1` on the backend to bring the old generated picks back (the public app no longer shows them).
 Note: `npm run build:phone` (the single-file offline app) was not updated for booking codes.
 
+## Premium subscription (Paystack)
+
+Members pay with Paystack (mobile money or card) to unlock **Premium** posts. In the admin console, tick **Premium only** when you
+post a code; free users see that slip locked, paying members see the codes. Plans are one-time (no auto-renewal) and stack if
+someone pays again.
+
+Backend variables:
+
+| Variable | What it does |
+| --- | --- |
+| `PAYSTACK_SECRET_KEY` | Your Paystack secret key (`sk_live_...`). Payments stay off until it is set. |
+| `PAYSTACK_CURRENCY` | Default `GHS`. |
+| `PREMIUM_PRICE_DAILY` / `_WEEKLY` / `_MONTHLY` | Prices in whole cedis. Defaults 5 / 25 / 80. Set one to `0` to hide that plan. |
+| `SITE_URL` | The frontend's address. Paystack sends people back here after paying. |
+
+In the Paystack dashboard (Settings → API Keys & Webhooks) set the **Webhook URL** to `https://<your-backend>/api/paystack/webhook`.
+The webhook means members still get Premium if they close the page right after paying. Access is only ever granted after the
+server confirms the payment and the exact amount with Paystack. Test first with your `sk_test_...` key.
+
 ## Run it locally
 
 Needs Node.js 20+.

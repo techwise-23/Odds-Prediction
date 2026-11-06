@@ -5,7 +5,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const state = { user: null, posts: [], platforms: [], open: null };
+const state = { user: null, posts: [], platforms: [], open: null, premium: { active: false, until: null, enabled: false, plans: [], currency: 'GHS' } };
 
 // Session token kept in this browser as a fallback for browsers that block cross-site cookies (see the backend's auth.js).
 const TOKEN_KEY = 'oddsday_token';
@@ -83,6 +83,7 @@ async function startApp() {
   $('#menu-name').textContent = state.user.name;
   $('#tg-open').hidden = !me.telegram;
   await loadPosts();
+  checkReturn();
 }
 
 $('#menu-btn').addEventListener('click', e => { e.stopPropagation(); $('#menu').hidden = !$('#menu').hidden; });
@@ -147,12 +148,14 @@ const platformOf = key => state.platforms.find(p => p.key === key) || { key, nam
 async function loadPosts() {
   let r;
   try { r = await api('/api/posts'); } catch (err) { $('#posts').innerHTML = `<div class="empty"><b>Could not load codes.</b><br>${esc(err.message)}</div>`; return; }
-  state.posts = r.posts; state.platforms = r.platforms;
+  state.posts = r.posts; state.platforms = r.platforms; state.premium = r.premium || state.premium;
   renderPosts();
   if (state.open) { const p = state.posts.find(x => x.id === state.open); p ? openPost(p.id) : closeDialog(); }
 }
 
 const ICON = {
+  vip: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 36l-2-20 12 10 7-14 7 14 12-10-2 20z"/><path d="M9 42h30"/></svg>',
+  lock: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="21" width="28" height="21" rx="4"/><path d="M16 21v-6a8 8 0 0 1 16 0v6M24 29v6"/></svg>',
   daily: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8.5"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M37.4 10.6l-4.2 4.2M14.8 33.2l-4.2 4.2"/></svg>',
   long: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 8h18v10a9 9 0 0 1-18 0V8z"/><path d="M15 12H8c0 6 3 9 7 9M33 12h7c0 6-3 9-7 9M24 27v8M17 41h14M19 35h10"/></svg>',
 };
@@ -170,44 +173,45 @@ function remaining(iso) {
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
 
 function postCard(p, i) {
-  const long = p.kind === 'long';
-  const books = state.platforms.filter(b => p.entries[b.key]);
+  const long = p.kind === 'long', vip = p.premium, locked = p.locked;
+  const books = state.platforms.filter(b => p.books.includes(b.key));
   const created = new Date(p.createdAt.replace(' ', 'T') + (/[zZ]$/.test(p.createdAt) ? '' : 'Z')).getTime();
   const span = long ? Math.max(1, new Date(p.lastMatchAt) - created) : 0;
   const pct = long ? Math.min(100, Math.max(4, ((Date.now() - created) / span) * 100)) : 0;
-  return `<button type="button" class="ticket ${long ? 'is-long' : ''}" data-post="${p.id}" style="--i:${i}">
-    <span class="stub">${ICON[p.kind]}<small>${long ? 'Long bet' : 'Today'}</small></span>
+  const label = vip ? 'Premium' : long ? 'Long bet' : 'Today';
+  return `<button type="button" class="ticket ${long ? 'is-long' : ''} ${vip ? 'is-vip' : ''} ${locked ? 'is-locked' : ''}" ${locked ? 'data-unlock' : `data-post="${p.id}"`} style="--i:${i}">
+    <span class="stub">${ICON[locked ? 'lock' : vip ? 'vip' : p.kind]}<small>${label}</small></span>
     <span class="body">
-      <b class="t-title">${esc(p.title || (long ? 'Long bet slip' : "Today's slip"))}</b>
+      <b class="t-title">${esc(p.title || (vip ? 'Premium slip' : long ? 'Long bet slip' : "Today's slip"))}</b>
       <span class="chips" aria-label="Available on">${books.map(b => `<i class="chip" title="${esc(b.name)}">${esc(initials(b.name))}</i>`).join('')}
         <em>${books.length} bookmaker${books.length === 1 ? '' : 's'}</em></span>
       ${long ? `<span class="track" role="img" aria-label="Time until the last match"><i style="width:${pct.toFixed(0)}%"></i></span>
         <span class="t-meta">Last match ${esc(fmtWhen(p.lastMatchAt))}</span>`
         : `<span class="t-meta"><span class="live-dot"></span><span data-expires="${esc(p.expiresAt)}">${esc(remaining(p.expiresAt))}</span></span>`}
     </span>
-    <span class="get">Get code<i aria-hidden="true">›</i></span>
+    <span class="get">${locked ? 'Unlock' : 'Get code'}<i aria-hidden="true">›</i></span>
   </button>`;
 }
 
 function ghostTicket(kind) {
-  const long = kind === 'long';
+  const long = kind === 'long', vip = kind === 'vip';
   return `<div class="ticket ghost">
-    <span class="stub">${ICON[kind]}<small>${long ? 'Long bet' : 'Today'}</small></span>
-    <span class="body"><b class="t-title">${long ? 'No long bet open' : 'Not posted yet'}</b>
-      <span class="t-meta">${long ? 'A long bet shows here when one is posted, and stays until its last match.' : 'Today\'s code shows here as soon as it\'s posted. Turn on Telegram alerts in the menu to get pinged.'}</span></span>
+    <span class="stub">${ICON[kind]}<small>${vip ? 'Premium' : long ? 'Long bet' : 'Today'}</small></span>
+    <span class="body"><b class="t-title">${long ? 'No long bet open' : vip ? 'No premium slip yet' : 'Not posted yet'}</b>
+      <span class="t-meta">${vip ? 'Premium slips with higher odds show here when they are posted.' : long ? 'A long bet shows here when one is posted, and stays until its last match.' : 'Today\'s code shows here as soon as it\'s posted. Turn on Telegram alerts in the menu to get pinged.'}</span></span>
   </div>`;
 }
 
 function renderPosts() {
-  const daily = state.posts.filter(p => p.kind === 'daily'), long = state.posts.filter(p => p.kind === 'long');
-  const next = state.posts.map(p => p.kind === 'long' ? null : p.expiresAt).filter(Boolean).sort()[0];
+  const daily = state.posts.filter(p => p.kind === 'daily' && !p.premium), long = state.posts.filter(p => p.kind === 'long' && !p.premium), vip = state.posts.filter(p => p.premium);
+  const next = state.posts.filter(p => !p.locked).map(p => p.kind === 'long' ? null : p.expiresAt).filter(Boolean).sort()[0];
   const live = state.posts.length;
   let i = 0;
   const first = !renderPosts.done; renderPosts.done = true;
   $('#posts').className = first ? 'enter' : '';
   $('#posts').innerHTML = `
     <section class="hero">
-      <p class="hello">${greeting()}</p>
+      <p class="hello">${greeting()}${state.premium.active ? `<span class="vip-badge">${ICON.vip}Premium until ${esc(new Date(state.premium.until).toLocaleDateString([], { day: 'numeric', month: 'short' }))}</span>` : ''}</p>
       <h1>${live ? `${live} live slip${live === 1 ? '' : 's'}<br>ready to load` : 'Your next slip<br>lands here'}</h1>
       <div class="board" role="group" aria-label="Today at a glance">
         <div><b>${live}</b><span>Live slips</span></div>
@@ -217,8 +221,11 @@ function renderPosts() {
     </section>
     <h2 class="rail">Today's booking code</h2>
     <div class="tickets">${daily.length ? daily.map(p => postCard(p, i++)).join('') : ghostTicket('daily')}</div>
+    ${vip.length || state.premium.plans.length ? `<h2 class="rail rail-vip">${ICON.vip}Premium odds</h2>
+      <div class="tickets">${vip.length ? vip.map(p => postCard(p, i++)).join('') : ghostTicket('vip')}</div>` : ''}
     <h2 class="rail">Long bet booking code</h2>
     <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div>
+    ${vipBanner()}
     <section class="how" aria-labelledby="how-h">
       <h2 id="how-h">Load a code in three steps</h2>
       <ol>
@@ -232,12 +239,76 @@ function shortLeft(iso) { const ms = new Date(iso) - Date.now(); if (ms <= 0) re
 // Keep the countdowns ticking.
 setInterval(() => $$('[data-expires]').forEach(el => { el.textContent = el.hasAttribute('data-short') ? shortLeft(el.dataset.expires) : remaining(el.dataset.expires); }), 20000);
 
+
+// ---------- premium ----------
+const CUR = { GHS: 'GH₵', NGN: '₦', ZAR: 'R', KES: 'KSh', USD: '$' };
+const money = n => (CUR[state.premium.currency] || state.premium.currency + ' ') + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+function vipBanner() {
+  const pr = state.premium;
+  if (pr.active) {
+    const days = Math.max(1, Math.ceil((new Date(pr.until) - Date.now()) / 86400000));
+    return `<section class="vip-banner is-active"><div><b>You're a Premium member</b><span>${days} day${days === 1 ? '' : 's'} left. Premium slips are unlocked.</span></div>
+      ${pr.enabled ? '<button type="button" class="get" data-unlock>Add time</button>' : ''}</section>`;
+  }
+  const low = pr.plans.length ? pr.plans.reduce((m, p) => Math.min(m, p.price), Infinity) : 0;
+  return `<section class="vip-banner"><div class="vip-copy"><span class="vip-crown">${ICON.vip}</span>
+      <b>Go Premium</b><span>Unlock higher-odds slips and long bets that free members don't see.${pr.enabled && low ? ` From ${esc(money(low))}.` : ''}</span></div>
+    ${pr.enabled ? '<button type="button" class="get" data-unlock>See plans</button>' : '<span class="soon">Coming soon</span>'}</section>`;
+}
+
+const premiumDialog = $('#premium-dialog');
+const premState = { plan: null };
+function openPremium() {
+  const pr = state.premium;
+  if (!pr.enabled) { toast('Premium is not open yet. Check back soon.'); return; }
+  if (!premState.plan || !pr.plans.some(p => p.key === premState.plan)) premState.plan = (pr.plans.find(p => p.best) || pr.plans[0]).key;
+  $('#premium-body').innerHTML = `
+    <p class="muted">${pr.active ? 'Add more time to your Premium membership.' : 'Pay once for the time you want. No auto-renewal.'}</p>
+    <div class="plan-list" role="radiogroup" aria-label="Plan">${pr.plans.map(p => `<button type="button" class="plan" role="radio" aria-checked="${p.key === premState.plan}" data-plan="${esc(p.key)}">
+        <span><b>${esc(p.name)}</b><small>${p.days} day${p.days === 1 ? '' : 's'}</small></span><span class="price">${esc(money(p.price))}</span>${p.best ? '<em>Best value</em>' : ''}</button>`).join('')}</div>
+    <label class="fld">Email for your receipt <small>(optional)</small><input id="pay-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></label>
+    <ul class="vip-perks"><li>Premium slips with bigger odds</li><li>Long bets with codes for your bookmaker</li><li>Instant access after payment</li></ul>
+    <button type="button" class="btn-primary" id="pay-go">Pay with Paystack</button>
+    <p class="fineprint">You'll pay on Paystack's secure page with mobile money or card. We never see your card or MoMo PIN.</p>`;
+  if (!premiumDialog.open) premiumDialog.showModal();
+}
+async function startPayment() {
+  const btn = $('#pay-go'); btn.disabled = true; btn.textContent = 'Opening Paystack…';
+  try {
+    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: premState.plan, email: $('#pay-email').value.trim(), returnUrl: location.origin + '/' } });
+    try { sessionStorage.setItem('oddsday_pay', r.reference); } catch { /* fine */ }
+    location.href = r.url;
+  } catch (err) { btn.disabled = false; btn.textContent = 'Pay with Paystack'; toast(err.message, 5000); }
+}
+premiumDialog.addEventListener('click', e => {
+  const plan = e.target.closest('[data-plan]');
+  if (plan) { premState.plan = plan.dataset.plan; $$('[data-plan]', premiumDialog).forEach(b => b.setAttribute('aria-checked', b === plan)); }
+  if (e.target.closest('#pay-go')) startPayment();
+  if (e.target === premiumDialog || e.target.closest('.premium-close')) premiumDialog.close();
+});
+
+// Back from Paystack: confirm the payment with the server, which asks Paystack itself.
+async function checkReturn() {
+  const q = new URLSearchParams(location.search);
+  let ref = q.get('reference') || q.get('trxref');
+  if (!ref) return;
+  history.replaceState(null, '', location.pathname);
+  try {
+    toast('Confirming your payment…', 8000);
+    const r = await api('/api/premium/verify', { method: 'POST', body: { reference: ref } });
+    await loadPosts();
+    toast(r.paid ? 'Payment received. Premium is on.' : 'Payment not completed. You were not charged.', 5000);
+  } catch (err) { toast(err.message, 7000); }
+}
+
 // Tap a post: choose a bookmaker, then see that bookmaker's code.
 const postDialog = $('#post-dialog');
 function closeDialog() { state.open = null; if (postDialog.open) postDialog.close(); }
 
 function openPost(id, platform) {
   const p = state.posts.find(x => x.id === id); if (!p) return;
+  if (p.locked) return openPremium();
   state.open = id;
   const avail = state.platforms.filter(b => p.entries[b.key]);
   $('#post-title').textContent = (p.kind === 'long' ? 'Long bet' : "Today's") + (p.title ? ' · ' + p.title : '');
@@ -274,6 +345,7 @@ async function loadImage(img) {
 }
 
 document.addEventListener('click', async e => {
+  if (e.target.closest('[data-unlock]')) return openPremium();
   const post = e.target.closest('[data-post]'), book = e.target.closest('[data-book]'), back = e.target.closest('[data-back]'), copy = e.target.closest('[data-copy]');
   if (post) return openPost(Number(post.dataset.post));
   if (book) return openPost(state.open, book.dataset.book);

@@ -5,18 +5,20 @@ const db = require('../db');
 const engine = require('../engine');
 const { auth, authAny } = require('../middleware/auth');
 const posts = require('../posts');
+const premium = require('../premium');
 const { predictionRows, ticketsFor } = require('../services/tickets');
 
 const router = express.Router();
 
 // Booking codes posted by the admin. Expired posts are never returned.
 router.get('/posts', auth, (req, res) => {
-  res.json({ posts: posts.active(), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), now: new Date().toISOString() });
+  res.json({ posts: posts.active({ premium: premium.isActive(req.user) }), premium: { ...premium.status(req.user), ...premium.offer() }, platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), now: new Date().toISOString() });
 });
 // Screenshot of a booking slip. Needs a signed-in user (or admin); the page fetches it with its token and shows it.
 router.get('/post-images/:id', authAny, (req, res) => {
   const img = /^[0-9a-f]{32}$/.test(req.params.id) ? posts.image(req.params.id) : null;
   if (!img) return res.status(404).json({ error: 'Not found' });
+  if (posts.imageIsPremium(req.params.id) && !req.isAdmin && !premium.isActive(req.user)) return res.status(403).json({ error: 'Premium members only' });
   res.set({ 'Content-Type': img.mime, 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' }).send(img.data);
 });
 

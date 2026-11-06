@@ -73,13 +73,14 @@ async function codeAdded(accaId, platformKey, code) {
 // The admin posted booking codes: tell users on each bookmaker that has a code, link or image for them.
 async function postAdded(post) {
   if (!post || !telegram.enabled()) return { sent: 0 };
-  const what = post.kind === 'long' ? 'Long bet booking code' : "Today's booking code";
+  const what = (post.premium ? 'Premium ' : '') + (post.kind === 'long' ? 'long bet booking code' : "today's booking code");
   let sent = 0;
   for (const u of linkedUsers('notify_codes')) {
     const e = post.entries[u.platform];
     if (!e) continue;
+    if (post.premium && !(u.premium_until && new Date(u.premium_until) > new Date())) continue; // premium codes only go to subscribers
     const pf = platformOf(u.platform);
-    const lines = [`🔑 <b>${h(what)}</b>${post.title ? ' · ' + h(post.title) : ''}`, `${h(pf.name)}:`];
+    const lines = [`🔑 <b>${h(what[0].toUpperCase() + what.slice(1))}</b>${post.title ? ' · ' + h(post.title) : ''}`, `${h(pf.name)}:`];
     if (e.code) lines.push(`<code>${h(e.code)}</code>`);
     if (e.link) lines.push(`<a href="${h(e.link)}">Open the slip</a>`);
     if (e.imageId) lines.push('<i>A slip screenshot is waiting in the app.</i>');

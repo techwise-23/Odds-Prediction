@@ -52,9 +52,10 @@ function auth(req, res, next) {
 
 // Either a signed-in user or a signed-in admin (used for images shown in both apps).
 function authAny(req, res, next) {
-  const u = userFrom(req, USER_COOKIE, 'user') || userFrom(req, ADMIN_COOKIE, 'admin');
+  const admin = userFrom(req, ADMIN_COOKIE, 'admin');
+  const u = userFrom(req, USER_COOKIE, 'user') || admin;
   if (!u) return res.status(401).json({ error: 'Please log in' });
-  req.user = u; next();
+  req.user = u; req.isAdmin = !!admin; next();
 }
 
 // Admin routes: needs the admin cookie AND the user must still be an admin in the database.
@@ -74,6 +75,7 @@ function limited(req, res, next) {
   list.push(now); attempts.set(key, list); if (attempts.size > 5000) attempts.clear(); next();
 }
 
-function publicUser(u) { return { id: u.id, phone: u.phone, name: displayPhone(u.phone), isAdmin: !!u.is_admin, platform: u.platform || 'sportybet' }; }
+function publicUser(u) { return { id: u.id, phone: u.phone, name: displayPhone(u.phone), isAdmin: !!u.is_admin, platform: u.platform || 'sportybet',
+  premium: !!(u.premium_until && new Date(u.premium_until) > new Date()), premiumUntil: u.premium_until && new Date(u.premium_until) > new Date() ? u.premium_until : null }; }
 
 module.exports = { USER_COOKIE, ADMIN_COOKIE, setUserSession, setAdminSession, clearSession, auth, authAny, adminAuth, limited, publicUser };

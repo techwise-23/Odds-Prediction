@@ -149,3 +149,13 @@ body.admin-page .subnav { top: calc(62px + env(safe-area-inset-top)); }
 .post-thumb { display: inline-flex; align-items: center; gap: 8px; }
 .post-thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .post-row { margin-top: 10px; }
+
+
+.check { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.check input { width: 20px; height: 20px; margin-top: 2px; accent-color: #8F63FF; flex: none; }
+.check small { display: block; color: var(--text-2); font-weight: 400; }
+.vip-tag { color: #FFE9A3; background: #4B2AAE; padding: 1px 8px; border-radius: 99px; font-size: .75rem; }
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.stat-row b { display: block; font-family: var(--display); font-size: 1.5rem; color: var(--gold-light); } .stat-row span { font-size: .78rem; color: var(--text-2); }
+.pay-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .88rem; }
+.pay-list li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }

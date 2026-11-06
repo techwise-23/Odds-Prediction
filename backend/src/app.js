@@ -6,7 +6,10 @@ const cors = require('./middleware/cors');
 
 const app = express();
 // Behind Render/Railway/nginx set TRUST_PROXY=1 so rate limits see each visitor's real IP.
-if (process.env.TRUST_PROXY) app.set('trust proxy', /^\d+$/.test(process.env.TRUST_PROXY) ? Number(process.env.TRUST_PROXY) : process.env.TRUST_PROXY);
+// In production the app always sits behind Railway's proxy. Without this every visitor shared the proxy's IP, so the
+// 20-attempts-per-15-minutes limit on sign up / log in was shared by everyone and quickly locked people out.
+const trustProxy = process.env.TRUST_PROXY || (process.env.NODE_ENV === 'production' ? '1' : '');
+if (trustProxy) app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
 app.disable('x-powered-by');
 app.use(cors);

@@ -15,21 +15,31 @@ const cookieOpts = (maxAge) => ({
   domain: config.cookieDomain, maxAge,
 });
 
+// The session is sent twice: as a cookie, and as a token in the response body. Browsers that block cross-site cookies
+// (Safari, Brave, Chrome in private mode, which is what the separate *.up.railway.app sites look like) drop the cookie,
+// so signing up appeared to work and the very next request said "Please log in". The apps keep the token and send it
+// back as an Authorization header instead.
 function setUserSession(res, user) {
-  res.cookie(USER_COOKIE, jwt.sign({ uid: user.id, aud: 'user' }, config.jwtSecret, { expiresIn: '30d' }), cookieOpts(30 * 86400000));
+  const token = jwt.sign({ uid: user.id, aud: 'user' }, config.jwtSecret, { expiresIn: '30d' });
+  res.cookie(USER_COOKIE, token, cookieOpts(30 * 86400000));
+  return token;
 }
 function setAdminSession(res, user) {
   // Shorter life than a normal session: the admin console can change codes and user access.
-  res.cookie(ADMIN_COOKIE, jwt.sign({ uid: user.id, aud: 'admin' }, config.jwtSecret, { expiresIn: '12h' }), cookieOpts(12 * 3600000));
+  const token = jwt.sign({ uid: user.id, aud: 'admin' }, config.jwtSecret, { expiresIn: '12h' });
+  res.cookie(ADMIN_COOKIE, token, cookieOpts(12 * 3600000));
+  return token;
 }
 function clearSession(res, name) {
   const { maxAge, ...o } = cookieOpts(0);
   res.clearCookie(name, o);
 }
 
+const bearer = req => { const m = /^Bearer (.+)$/.exec(req.headers.authorization || ''); return m ? m[1] : ''; };
+
 function userFrom(req, cookie, aud) {
   try {
-    const { uid, aud: a } = jwt.verify(req.cookies[cookie] || '', config.jwtSecret);
+    const { uid, aud: a } = jwt.verify(bearer(req) || req.cookies[cookie] || '', config.jwtSecret);
     if (a !== aud) return null;
     return db.prepare('SELECT * FROM users WHERE id = ?').get(uid) || null;
   } catch { return null; }

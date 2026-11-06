@@ -23,16 +23,16 @@ router.post('/register', limited, (req, res) => {
   const { lastInsertRowid } = db.prepare("INSERT INTO users (name, email, password_hash, phone, is_admin) VALUES ('', ?, '', ?, ?)")
     .run(phone + '@phone.local', phone, isAdmin ? 1 : 0);
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(lastInsertRowid);
-  setSession(res, user);
-  res.json({ user: publicUser(user) });
+  const token = setSession(res, user);
+  res.json({ user: publicUser(user), token });
 });
 
 router.post('/login', limited, (req, res) => {
   const phone = phoneFrom(req, res); if (!phone) return;
   const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
   if (!user) return res.status(404).json({ error: 'No account for that number yet. Tap Sign up to create one.' });
-  setSession(res, user);
-  res.json({ user: publicUser(user) });
+  const token = setSession(res, user);
+  res.json({ user: publicUser(user), token });
 });
 
 router.post('/logout', (req, res) => { clearSession(res, USER_COOKIE); res.json({ ok: true }); });

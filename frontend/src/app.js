@@ -7,6 +7,11 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 
 const state = { user: null, date: null, tier: 'low', data: null, view: 'home', dash: null };
 
+// Session token kept in this browser as a fallback for browsers that block cross-site cookies (see the backend's auth.js).
+const TOKEN_KEY = 'oddsday_token';
+const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } };
+const setToken = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ } };
+
 async function api(path, opts = {}) {
   // Standalone phone app: the backend runs inside the page.
   if (window.LocalAPI) {
@@ -18,14 +23,16 @@ async function api(path, opts = {}) {
   let res;
   try { res = await fetch(API_URL + path, {
     method: opts.method || 'GET',
-    headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+    headers: { ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...(getToken() ? { Authorization: 'Bearer ' + getToken() } : {}) },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
     credentials: 'include',
   }); }
   catch { throw new Error(API_URL ? `Can't reach the server at ${API_URL}. Check that the backend is running, API_URL is its public https address, and CORS_ORIGINS on the backend lists this site.` : "Can't reach the server. API_URL is not set for this site."); }
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && path !== '/api/login') { showAuth(); throw new Error('Please log in'); }
+  if (res.status === 401 && path !== '/api/login') { setToken(''); showAuth(); throw new Error('Please log in'); }
   if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
+  if (path === '/api/login' || path === '/api/register') setToken(data.token);
+  if (path === '/api/logout') setToken('');
   return data;
 }
 

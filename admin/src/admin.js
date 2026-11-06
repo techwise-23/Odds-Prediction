@@ -11,14 +11,20 @@ const started = p => p.status !== 'NS' || new Date(p.kickoff) <= new Date();
 const empty = (title, sub) => `<div class="empty"><b>${esc(title)}</b><br>${esc(sub)}</div>`;
 function toast(msg, ms = 2400) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), ms); }
 
+// Session token kept in this browser as a fallback for browsers that block cross-site cookies (see the backend's auth.js).
+const TOKEN_KEY = 'oddsday_admin_token';
+const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } };
+const setToken = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ } };
+
 async function api(path, opts = {}) {
   let res;
-  try { res = await fetch(API_URL + path, { method: opts.method || 'GET', headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+  try { res = await fetch(API_URL + path, { method: opts.method || 'GET', headers: { ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...(getToken() ? { Authorization: 'Bearer ' + getToken() } : {}) },
     body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: 'include' }); }
   catch { throw new Error(API_URL ? `Can't reach the server at ${API_URL}. Check that the backend is running, API_URL is its public https address, and CORS_ORIGINS on the backend lists this site.` : "Can't reach the server. API_URL is not set for this site."); }
   const data = await res.json().catch(() => ({}));
   const isLogin = path === '/api/admin/login';
-  if (res.status === 401 && !isLogin) { showLogin(); throw new Error('Please log in'); }
+  if (isLogin && res.ok) setToken(data.token);
+  if (res.status === 401 && !isLogin) { setToken(''); showLogin(); throw new Error('Please log in'); }
   if (res.status === 403 && !isLogin) { showDenied(); throw new Error('Admins only'); }
   if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
   return data;
@@ -37,7 +43,7 @@ $('#adm-form').addEventListener('submit', async e => {
   btn.disabled = false;
 });
 $('#adm-form [name=phone]').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^\d+\s\-()]/g, ''); });
-for (const b of $$('[data-adm-logout]')) b.addEventListener('click', async () => { await fetch(API_URL + '/api/admin/logout', { method: 'POST', credentials: 'include' }); location.reload(); });
+for (const b of $$('[data-adm-logout]')) b.addEventListener('click', async () => { await fetch(API_URL + '/api/admin/logout', { method: 'POST', credentials: 'include' }).catch(() => {}); setToken(''); location.reload(); });
 
 const pct = x => x == null ? '—' : Math.round(x * 100) + '%';
 const CIRC = 2 * Math.PI * 42;

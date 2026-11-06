@@ -22,8 +22,8 @@ router.post('/login', limited, (req, res) => {
   if (settings.passcodeSet() && !settings.checkPasscode(req.body.passcode)) return res.status(401).json({ error: 'Wrong phone number or passcode' });
   const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
   if (!user || !user.is_admin) return res.status(403).json({ error: settings.passcodeSet() ? 'Wrong phone number or passcode' : 'That number is not an admin account' });
-  setAdminSession(res, user);
-  res.json({ user: publicUser(user) });
+  const token = setAdminSession(res, user);
+  res.json({ user: publicUser(user), token });
 });
 router.post('/logout', (req, res) => { clearSession(res, ADMIN_COOKIE); res.json({ ok: true }); });
 router.get('/me', adminAuth, (req, res) => res.json({ user: publicUser(req.user), demo: !config.apiKey, platforms: config.platforms, passcodeSet: settings.passcodeSet() }));

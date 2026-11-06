@@ -459,7 +459,12 @@ document.addEventListener('click', async e => {
 
 async function boot() {
   let me;
-  try { me = await api('/api/admin/me'); } catch { return; }
+  try { me = await api('/api/admin/me'); }
+  catch (err) {
+    // 401 already showed the login form. Anything else (API unreachable, CORS) used to leave a blank page: show why instead.
+    if (err.message !== 'Please log in' && err.message !== 'Admins only') { showLogin(); $('#adm-form .form-error').textContent = err.message; }
+    return;
+  }
   if (!me.user.isAdmin) return showDenied();
   state.user = me.user; state.platforms = me.platforms; state.passcodeSet = me.passcodeSet;
   view('console'); loadAdmin();

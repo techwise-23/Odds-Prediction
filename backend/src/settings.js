@@ -158,7 +158,7 @@ function view() {
     overridden: KEYS.filter(k => over.has(k)),
     serverOnly: {
       corsOrigins: config.corsOrigins, cookieSameSite: config.cookieSameSite, port: config.port, dbFile: config.dbFile,
-      adminPhones: config.adminPhones.length, sessionSecretOk: !/^(change-me|replace-with)/.test(config.jwtSecret) && config.jwtSecret.length >= 24,
+      adminPhones: config.adminPhones.length, sessionSecretOk: config.jwtSecretSource === 'env' || config.jwtSecretSource === 'file' || config.jwtSecretSource === 'generated',
     },
   };
 }

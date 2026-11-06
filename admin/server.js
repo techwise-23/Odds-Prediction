@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, 'src');
+if (process.env.NODE_ENV === 'production' && !process.env.API_URL) console.warn('WARNING: API_URL is not set, so the page will call http://localhost:3000 and fail. Set API_URL to the backend address.');
 const port = Number(process.env.PORT || 5174);
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };

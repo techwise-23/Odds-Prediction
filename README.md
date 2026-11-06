@@ -51,11 +51,14 @@ Or with Docker: `cp backend/.env.example backend/.env && docker compose up --bui
 
 ## Deploy (Railway example)
 
-Create three services from the same repo, each with its own **Root Directory**:
+Create three services from the same repo. **Each service must have its Root Directory set** (Settings → Source →
+Root Directory = `backend`, `frontend` or `admin`). Without it Railway looks for a Dockerfile at the repo root, finds none
+and the build fails.
 
-1. **backend** (root `backend/`): add a Volume mounted at `/data`. Variables: `JWT_SECRET` (`openssl rand -hex 32`),
+1. **backend** (root `backend/`): add a Volume mounted at `/data`. Variables: `JWT_SECRET` (`openssl rand -hex 32`; if you forget it, a random one is created and kept on the Volume),
    `ADMIN_PHONES`, `ADMIN_PASSCODE`, `TRUST_PROXY=1`, `CORS_ORIGINS=https://app.x.com,https://admin.x.com`,
    `COOKIE_SAMESITE` (see above), `SITE_URL=https://app.x.com`, optional `API_FOOTBALL_KEY`, `TELEGRAM_BOT_TOKEN`.
+   The Volume is what keeps your database between deploys: without it every redeploy starts empty.
    Keep it at **1 replica** (the daily jobs and Telegram polling run inside it).
 2. **frontend** (root `frontend/`): variable `API_URL=https://api.x.com`.
 3. **admin** (root `admin/`): variable `API_URL=https://api.x.com`.

@@ -1,4 +1,8 @@
 // Starts the API, the daily schedule and the Telegram bot.
+// A stray error in a background job (API-Football down, Telegram timeout...) must not take the whole API offline.
+process.on('unhandledRejection', e => console.error('Unhandled rejection:', e && e.stack || e));
+process.on('uncaughtException', e => console.error('Uncaught exception:', e && e.stack || e));
+
 const config = require('./config');
 const db = require('./db');
 const settings = require('./settings');
@@ -8,10 +12,10 @@ const telegram = require('./telegram');
 const notify = require('./notify');
 const schedule = require('./schedule');
 
-// Refuse to run in production with a guessable session secret.
-if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || /^(change-me|replace-with)/.test(config.jwtSecret) || config.jwtSecret.length < 24)) {
-  console.error('JWT_SECRET must be set to a long random string (24+ characters) in production.');
-  process.exit(1);
+// A missing or weak JWT_SECRET used to stop the app from starting (a crash loop on Railway). Now a strong secret is
+// created and stored next to the database instead; just warn so it can be set properly.
+if (config.jwtSecretSource !== 'env') {
+  console.warn(`WARNING: JWT_SECRET is not set (or is too short). Using a ${config.jwtSecretSource} secret${config.jwtSecretSource === 'temporary' ? ' that is lost on restart, so everyone is logged out. Attach a Volume at /data or set JWT_SECRET' : ' stored beside the database. Set JWT_SECRET (24+ characters) to control it'}.`);
 }
 if (process.env.NODE_ENV === 'production' && !settings.passcodeSet()) {
   console.warn('WARNING: ADMIN_PASSCODE is not set. Anyone who knows an admin phone number can open the admin console.');
@@ -20,9 +24,11 @@ if (process.env.NODE_ENV === 'production' && !settings.passcodeSet()) {
 const app = require('./app');
 
 // ---------- schedule ----------
-schedule.start(); // times come from settings; the admin console can change them live
+try { schedule.start(); } // times come from settings; the admin console can change them live
+catch (e) { console.error('Schedule not started (check time zone and cron settings in the admin console):', e.message); }
 
 const server = app.listen(config.port, async () => {
+ try {
   console.log(`OddsDay API on http://localhost:${config.port} (${config.apiKey ? 'LIVE data' : 'DEMO data — add API_FOOTBALL_KEY for real games'})`);
   console.log(`Allowed browser origins: ${config.corsOrigins.join(', ')}`);
   // First start of the day: make sure today's picks exist.
@@ -36,10 +42,11 @@ const server = app.listen(config.port, async () => {
     console.log("Today's or tomorrow's predictions are missing — generating now...");
     console.log(await engine.dailyRun().catch(e => e.message));
   }
-  telegram.startPolling();
+  telegram.startPolling().catch(e => console.error('telegram:', e.message));
   // Missed the 6:00 message (server was down)? Send it now; it only ever goes out once per day.
   notify.morning(today).catch(e => console.error('notify:', e.message));
   engine.settle().catch(e => console.error('settle:', e.message));
+ } catch (e) { console.error('Startup tasks failed (the API is still running):', e.message); }
 });
 
 // Railway sends SIGTERM on every redeploy: stop cleanly so the SQLite file is never left mid-write.

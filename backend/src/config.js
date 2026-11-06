@@ -4,9 +4,30 @@ const { normalizePhone } = require('./phone');
 
 const env = process.env;
 
+// Session secret. Use JWT_SECRET when it is set to something strong. Otherwise create a random one once and keep it
+// next to the database (on the Railway Volume), so a missing variable never stops the app from starting and logins
+// survive redeploys. Set JWT_SECRET yourself if you ever run more than one instance.
+function resolveJwtSecret() {
+  const given = env.JWT_SECRET || '';
+  if (given.length >= 24 && !/^(change-me|replace-with)/.test(given)) return { value: given, source: 'env' };
+  const fs = require('fs');
+  const path = require('path');
+  const dbPath = env.DB_FILE || path.join(__dirname, '..', 'data', 'app.db');
+  const file = path.join(path.dirname(dbPath), '.jwt_secret');
+  try {
+    const saved = fs.readFileSync(file, 'utf8').trim();
+    if (saved.length >= 24) return { value: saved, source: 'file' };
+  } catch { /* not created yet */ }
+  const value = require('crypto').randomBytes(32).toString('hex');
+  try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value, { mode: 0o600 }); return { value, source: 'generated' }; }
+  catch { return { value, source: 'temporary' }; }
+}
+const jwt = resolveJwtSecret();
+
 module.exports = {
   port: Number(env.PORT || 3000),
-  jwtSecret: env.JWT_SECRET || 'change-me-in-production',
+  jwtSecret: jwt.value,
+  jwtSecretSource: jwt.source,
   // Browser apps allowed to call this API (comma separated origins): the public site and the admin console.
   corsOrigins: (env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean),
   // Cookies: 'lax' when the apps share a registrable domain (app.x.com, admin.x.com, api.x.com);

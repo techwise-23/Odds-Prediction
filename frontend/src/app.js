@@ -161,32 +161,41 @@ const ICON = {
 };
 
 // Hero art drawn in SVG: floodlit stadium, striped pitch and a gold football. (No photos, so nothing to license.)
-const STADIUM = `<svg viewBox="0 0 420 340" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-  <defs>
-    <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#030A22"/><stop offset=".55" stop-color="#0A2060"/><stop offset="1" stop-color="#0B2C7A"/></linearGradient>
-    <linearGradient id="pt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1C7A2E"/><stop offset="1" stop-color="#0A3D17"/></linearGradient>
-    <radialGradient id="bl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFE27A"/><stop offset=".55" stop-color="#F5B400"/><stop offset="1" stop-color="#9A6400"/></radialGradient>
-    <radialGradient id="gl"><stop offset="0" stop-color="#FFD24A" stop-opacity=".55"/><stop offset="1" stop-color="#FFD24A" stop-opacity="0"/></radialGradient>
-    <filter id="bz"><feGaussianBlur stdDeviation="2.2"/></filter>
-    <pattern id="cr" width="9" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="#6EA2FF" opacity=".35"/><circle cx="6.5" cy="5" r=".9" fill="#FFD24A" opacity=".22"/></pattern>
+const BALL_BODY = `<circle r="62" fill="url(#bg)"/><g clip-path="url(#bc)" fill="#10131C">
+    <path d="M0-24l22.8 16.6-8.7 26.8H-14.1L-22.8-7.4z"/>
+    <path d="M0-24V-62M22.8-7.4l36-11.7M14.1 19.4l22.3 30.7M-14.1 19.4L-36.4 50M-22.8-7.4l-36-11.7" stroke="#10131C" stroke-width="2.6" fill="none"/>
+    <path d="M-47-52l20 3 4 22-18 6-14-16zM47-52l-20 3-4 22 18 6 14-16zM64 8l-5 24-20 4-8-20 14-14zM-64 8l5 24 20 4 8-20-14-14zM0 74l-22-10 2-22h40l2 22z"/></g>
+  <circle r="62" fill="url(#bs)"/>`;
+const BALL_DEFS = `<radialGradient id="bg" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#E9EDF5"/><stop offset="1" stop-color="#AEB8CC"/></radialGradient>
+  <radialGradient id="bs" cx=".5" cy=".5" r=".5"><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></radialGradient>
+  <clipPath id="bc"><circle r="62"/></clipPath>`;
+// Hero art: bright floodlit stadium, grass, a football and blue/gold corner swooshes. Drawn here, so there is no photo to license.
+const STADIUM = `<svg viewBox="0 0 420 340" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+  <defs>${BALL_DEFS}
+    <linearGradient id="sk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EAF2FF"/><stop offset=".45" stop-color="#7FB0FF"/><stop offset="1" stop-color="#1E56D6"/></linearGradient>
+    <linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#58B83A"/><stop offset="1" stop-color="#1F7A22"/></linearGradient>
+    <filter id="bz"><feGaussianBlur stdDeviation="2.6"/></filter><filter id="bz2"><feGaussianBlur stdDeviation="7"/></filter>
+    <pattern id="cr" width="8" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="#0B2A7A" opacity=".35"/><circle cx="6" cy="4.5" r="1" fill="#fff" opacity=".4"/></pattern>
   </defs>
   <rect width="420" height="340" fill="url(#sk)"/>
-  <path d="M0 112C90 84 330 84 420 112V196H0z" fill="#07163F"/><path d="M0 112C90 84 330 84 420 112V196H0z" fill="url(#cr)"/>
-  <path d="M0 112C90 84 330 84 420 112" fill="none" stroke="#7FB0FF" stroke-opacity=".4" stroke-width="1.5"/>
-  <g filter="url(#bz)" fill="#fff">${Array.from({ length: 22 }, (_, i) => { const x = 14 + i * 18.6, y = 70 + Math.abs(i - 10.5) * 1.5; return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.1"/><circle cx="${x.toFixed(1)}" cy="${(y + 9).toFixed(1)}" r="2.4"/>`; }).join('')}</g>
-  <path d="M0 196h420v144H0z" fill="url(#pt)"/>
-  ${Array.from({ length: 7 }, (_, i) => `<path d="M${-60 + i * 80} 196h40l${(i - 3) * 22 + 40} 144h-60z" fill="#fff" opacity=".05"/>`).join('')}
-  <ellipse cx="210" cy="262" rx="150" ry="30" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/><path d="M0 262h420" stroke="#fff" stroke-opacity=".25" stroke-width="2"/>
-  <circle cx="372" cy="214" r="110" fill="url(#gl)"/>
-  <g transform="translate(374 214) scale(.85)"><circle r="64" fill="url(#bl)"/>
-    <path d="M0-22l21 15-8 25H-13l-8-25z" fill="#2A1A00" opacity=".85"/>
-    <path d="M0-22V-64M21-7l40-13M13 18l24 34M-13 18l-24 34M-21-7l-40-13" stroke="#2A1A00" stroke-width="3" opacity=".6"/>
-    <path d="M-44-46l10 12-12 8-8-14zM44-46l-10 12 12 8 8-14zM0 64l-14-8 4-14h20l4 14z" fill="#2A1A00" opacity=".7"/></g>
+  <g filter="url(#bz2)"><path d="M120 150C220 100 380 70 420 90V215H120z" fill="#123E9C" opacity=".75"/><path d="M120 150C220 100 380 70 420 90V215H120z" fill="url(#cr)"/></g>
+  <g filter="url(#bz)" fill="#fff">${Array.from({ length: 8 }, (_, i) => `<circle cx="${190 + i * 30}" cy="${108 - i * 8}" r="${4 + i * .35}"/>`).join('')}</g>
+  <path d="M110 214C220 190 330 196 420 190V340H90z" fill="url(#gr)"/>
+  ${Array.from({ length: 6 }, (_, i) => `<path d="M${130 + i * 60} 210l22 -2l${20 + i * 14} 132h-46z" fill="#fff" opacity=".08"/>`).join('')}
+  <ellipse cx="356" cy="284" rx="50" ry="8" fill="#0B3A12" opacity=".45"/>
+  <g transform="translate(358 232) scale(.76)">${BALL_BODY}</g>
+  <path d="M0 0H92C60 30 28 60 0 74z" fill="#1D4ED8"/><path d="M0 74C28 60 64 28 92 0H112C78 36 40 70 0 92z" fill="#FFC21A"/>
+  <path d="M420 340V258C380 292 330 322 258 340z" fill="#1D4ED8"/><path d="M420 258V236C372 280 320 316 244 340H258C330 322 380 292 420 258z" fill="#FFC21A"/>
 </svg>`;
-const BALL = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="lb" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FFE27A"/><stop offset=".6" stop-color="#F5B400"/><stop offset="1" stop-color="#9A6400"/></radialGradient></defs>
-  <circle cx="32" cy="32" r="29" fill="url(#lb)" stroke="#2A1A00" stroke-width="2.5"/><path d="M32 21l9 6.5-3.5 10.5h-11L23 27.5z" fill="#2A1A00"/>
-  <path d="M32 21V4M41 27.5l16-5M37.5 38l10 14M26.5 38l-10 14M23 27.5l-16-5" stroke="#2A1A00" stroke-width="2.4" fill="none"/></svg>`;
+const BALL = `<svg viewBox="-80 -70 150 140" aria-hidden="true"><defs>${BALL_DEFS}<linearGradient id="sw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE27A"/><stop offset="1" stop-color="#E59E00"/></linearGradient></defs>
+  <path d="M-34-64C-82-48-84 38-30 62C-62 30-62-30-34-64z" fill="url(#sw)"/><path d="M-50-50C-84-20-80 36-44 58C-66 28-66-26-50-50z" fill="#FFC21A" opacity=".85"/>
+  <g transform="translate(0 0) scale(.95)">${BALL_BODY}</g></svg>`;
 const SI = {
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6.5v11l9-5.5z"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.1M8 17.5h2M12 17.5h2"/></svg>',
+  doc: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 6h18l8 8v26a2 2 0 0 1-2 2H12a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M30 6v8h8M16 20h14M16 26h14M16 32h8"/></svg>',
+  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6-4.5-4.2 6.1-.8z"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg>',
   clip: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM7 5.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5V7A1.5 1.5 0 0 0 18 5.5h-1"/><path d="M8.5 12h7M8.5 16h4"/></svg>',
   cup: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 8h18v10a9 9 0 0 1-18 0V8z"/><path d="M15 12H8c0 6 3 9 7 9M33 12h7c0 6-3 9-7 9M24 27v8M17 41h14M19 35h10"/></svg>',
   clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/></svg>',
@@ -237,10 +246,12 @@ function postCard(p, i) {
 
 function ghostTicket(kind) {
   const long = kind === 'long', vip = kind === 'vip';
+  const ico = vip ? `<span class="ball-ico">${uniq(BALL)}</span>` : long ? SI.cup : SI.doc;
   return `<div class="ticket ghost">
-    <span class="stub">${ICON[kind]}<small>${vip ? 'Premium' : long ? 'Long bet' : 'Today'}</small></span>
+    <span class="stub">${ico}${vip || long ? '' : '<small>Today</small>'}</span>
     <span class="body"><b class="t-title">${long ? 'No long bet open' : vip ? 'No premium slip yet' : 'Not posted yet'}</b>
-      <span class="t-meta">${vip ? 'Premium slips with higher odds show here when they are posted.' : long ? 'A long bet shows here when one is posted, and stays until its last match.' : 'Today\'s code shows here as soon as it\'s posted. Turn on Telegram alerts in the menu to get pinged.'}</span></span>
+      <span class="t-meta">${vip ? 'Premium slips with higher odds show here when they are posted.' : long ? 'Long bet slips will appear here soon.' : "Today's code will be available soon. Keep checking back for updates."}</span></span>
+    ${vip || long ? `<span class="chev">${SI.chev}</span>` : ''}
   </div>`;
 }
 
@@ -259,21 +270,24 @@ function renderPosts() {
         <p class="hello">${greeting()},${state.premium.active ? `<span class="vip-badge">${ICON.vip}Premium until ${esc(new Date(state.premium.until).toLocaleDateString([], { day: 'numeric', month: 'short' }))}</span>` : ''}</p>
         <h1>${live ? `${live} live slip${live === 1 ? '' : 's'}<br><em>ready</em> to load` : 'Your next slip<br><em>lands</em> here'}</h1>
         <p class="hero-sub">${live ? "Don't miss today's winning opportunities!" : "We'll show the next booking code here as soon as it's posted."}</p>
-        ${live ? '<button type="button" class="hero-cta" data-scroll="slips">View Slips <i aria-hidden="true">→</i></button>' : ''}
+        <button type="button" class="hero-cta" data-scroll="slips">${live ? 'View Slips' : 'Stay Ready'} <i aria-hidden="true">›</i></button>
       </div>
+      <span class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i></span>
     </section>
     <div class="board" role="group" aria-label="Today at a glance">
-      <div><span class="bi blue">${SI.clip}</span><b>${live}</b><span>Live slips</span></div>
-      <div><span class="bi gold">${SI.cup}</span><b>${state.platforms.length}</b><span>Bookmakers</span></div>
-      <div><span class="bi blue">${SI.clock}</span><b class="clock" ${next ? `data-expires="${esc(next)}" data-short` : ''}>${next ? shortLeft(next) : '—'}</b><span>${next ? "Until today's code closes" : 'Waiting for a code'}</span></div>
+      <div><span class="bi play">${SI.play}</span><b>${live}</b><span>Live Slips</span></div>
+      <div><span class="bi cup">${SI.cup}</span><b>${state.platforms.length}</b><span>Bookmakers</span></div>
+      <div><span class="bi clk">${SI.clock}</span><b class="clock" ${next ? `data-expires="${esc(next)}" data-short` : ''}>${next ? shortLeft(next) : '-'}</b><span>${next ? "Until Today's Code Closes" : 'Waiting for a code'}</span></div>
     </div>
     <div id="slips"></div>
-    <h2 class="rail"><span>Today's Booking Code</span><time>${esc(today)}</time></h2>
-    <div class="tickets">${daily.length ? daily.map(p => postCard(p, i++)).join('') : ghostTicket('daily')}</div>
-    ${vip.length || state.premium.plans.length ? `<h2 class="rail rail-vip"><span>${ICON.vip}Premium Odds</span></h2>
-      <div class="tickets">${vip.length ? vip.map(p => postCard(p, i++)).join('') : ghostTicket('vip')}</div>` : ''}
-    <h2 class="rail"><span><i class="rail-ico">${SI.bars}</i>Long Bet Booking Code</span></h2>
-    <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div>
+    <section class="sect today">
+      <header><span class="sect-ico">${SI.cal}</span><h2>Today's Booking Code</h2><time>${SI.cal}${esc(today)}<i aria-hidden="true">⌄</i></time></header>
+      <div class="tickets">${daily.length ? daily.map(p => postCard(p, i++)).join('') : ghostTicket('daily')}</div>
+    </section>
+    ${vip.length || state.premium.plans.length ? `<section class="sect vip"><header><h2>Premium Odds</h2><span class="pill">${SI.star}Top Picks</span></header>
+      <div class="tickets">${vip.length ? vip.map(p => postCard(p, i++)).join('') : ghostTicket('vip')}</div></section>` : ''}
+    <section class="sect long"><header><span class="sect-ico">${SI.bars}</span><h2>Long Bet Booking Code</h2></header>
+      <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div></section>
     ${vipBanner()}
     <section class="how" aria-labelledby="how-h">
       <h2 id="how-h">Load a Code <span>in Three Simple Steps</span></h2>

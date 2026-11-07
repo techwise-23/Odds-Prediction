@@ -92,9 +92,12 @@ module.exports = {
     api: (env.PAYSTACK_API_BASE || 'https://api.paystack.co').replace(/\/+$/, ''),
     currency: (env.PAYSTACK_CURRENCY || 'GHS').toUpperCase(),
   },
-  // One pass: unlocks every booking code from the moment of payment until the end of Sunday (Monday to Sunday week).
+  // Passes unlock every booking code. Daily: until midnight tonight. Weekly: until the end of Sunday (Monday to Sunday week).
+  // Monthly: 30 days from payment. Set a price to 0 to hide that plan.
   premiumPlans: [
-    { key: 'weekly', name: 'Weekly pass', price: Number(env.PREMIUM_PRICE_WEEKLY || 50) },
+    { key: 'daily', name: 'Daily pass', price: Number(env.PREMIUM_PRICE_DAILY ?? 15) },
+    { key: 'weekly', name: 'Weekly pass', price: Number(env.PREMIUM_PRICE_WEEKLY ?? 50) },
+    { key: 'monthly', name: 'Monthly pass', price: Number(env.PREMIUM_PRICE_MONTHLY ?? 120) },
   ],
 
   // Telegram alerts (optional). Create a bot with @BotFather and put its token here.

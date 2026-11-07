@@ -14,7 +14,14 @@ function weekEnd() {
   const today = posts.localDate(0), dow = new Date(today + 'T12:00:00Z').getUTCDay(); // 0 = Sunday
   return posts.zonedInstant(posts.addDays(today, (7 - dow) % 7 + 1), 0);
 }
-const daysLeft = () => Math.max(1, Math.ceil((weekEnd() - Date.now()) / 86400000));
+// When a pass bought now stops working.
+function planEnd(key) {
+  if (key === 'daily') return posts.zonedInstant(posts.addDays(posts.localDate(0), 1), 0);
+  if (key === 'monthly') return new Date(Date.now() + 30 * 86400000);
+  return weekEnd();
+}
+const daysLeft = key => Math.max(1, Math.ceil((planEnd(key) - Date.now()) / 86400000));
+const PLAN_TEXT = { daily: 'until midnight tonight', weekly: 'Monday to Sunday', monthly: '30 days' };
 const isActive = u => !!(u && u.premium_until && new Date(u.premium_until) > new Date());
 
 function status(user) {
@@ -23,7 +30,7 @@ function status(user) {
 
 // What the apps need to show the upgrade screen.
 function offer() {
-  return { enabled: enabled(), currency: config.paystack.currency, endsAt: weekEnd().toISOString(), daysLeft: daysLeft(), plans: plans().map(({ key, name, price }) => ({ key, name, price })) };
+  return { enabled: enabled(), currency: config.paystack.currency, endsAt: weekEnd().toISOString(), daysLeft: daysLeft('weekly'), plans: plans().map(({ key, name, price }) => ({ key, name, price, endsAt: planEnd(key).toISOString(), days: daysLeft(key), text: PLAN_TEXT[key] || '' })) };
 }
 
 async function paystack(method, path, body) {
@@ -52,10 +59,10 @@ async function checkout(user, planKey, { email, callbackUrl }) {
     email: validEmail(email) || `${user.phone}@pawaodds.app`,
     amount, currency: config.paystack.currency, reference,
     callback_url: callbackUrl || undefined,
-    metadata: { user_id: user.id, plan: plan.key, custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: `${plan.name} (until Sunday)` }] },
+    metadata: { user_id: user.id, plan: plan.key, custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: `${plan.name} (${PLAN_TEXT[plan.key] || ''})` }] },
   });
   db.prepare('INSERT INTO payments (reference, user_id, plan, days, amount, currency) VALUES (?,?,?,?,?,?)')
-    .run(reference, user.id, plan.key, daysLeft(), amount, config.paystack.currency);
+    .run(reference, user.id, plan.key, daysLeft(plan.key), amount, config.paystack.currency);
   return { reference, url: data.authorization_url };
 }
 
@@ -66,9 +73,9 @@ const grant = db.transaction((reference, channel) => {
   const done = db.prepare("UPDATE payments SET status = 'success', paid_at = ?, channel = ? WHERE reference = ? AND status != 'success'")
     .run(new Date().toISOString(), channel || null, reference).changes;
   if (done) {
-    // Access lasts until the end of this week's Sunday (a later payment never shortens an existing pass).
+    // Access lasts as long as the plan says (a later payment never shortens an existing pass).
     const u = db.prepare('SELECT premium_until FROM users WHERE id = ?').get(pay.user_id);
-    const end = new Date(weekEnd().getTime() - 1000), cur = u && u.premium_until ? new Date(u.premium_until) : null;
+    const end = new Date(planEnd(pay.plan).getTime() - 1000), cur = u && u.premium_until ? new Date(u.premium_until) : null;
     db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run((cur && cur > end ? cur : end).toISOString(), pay.user_id);
   }
   return { ...pay, newlyPaid: !!done };

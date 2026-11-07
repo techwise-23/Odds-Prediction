@@ -35,7 +35,7 @@ Note: `npm run build:phone` (the single-file offline app) was not updated for bo
 
 ## Weekly pass (Paystack)
 
-Every booking code is locked until the user subscribes. Tapping a code opens a prompt: **GH₵50 for 1 week, Monday to Sunday**, with a
+Every booking code is locked until the user subscribes. Tapping a code opens a prompt: a choice of **GH₵15 daily, GH₵50 weekly (Monday to Sunday) or GH₵120 monthly (30 days)**, with a
 Subscribe button that opens Paystack checkout (mobile money or card). When payment is confirmed everything unlocks until the end of
 that Sunday (app time zone, default Africa/Accra). There is no auto-renewal. Admins always see the codes.
 
@@ -45,7 +45,7 @@ Backend variables:
 | --- | --- |
 | `PAYSTACK_SECRET_KEY` | Your Paystack secret key (`sk_live_...`). Payments stay off until it is set. |
 | `PAYSTACK_CURRENCY` | Default `GHS`. |
-| `PREMIUM_PRICE_WEEKLY` | Weekly pass price in whole cedis. Default 50. |
+| `PREMIUM_PRICE_DAILY` / `_WEEKLY` / `_MONTHLY` | Pass prices in whole cedis. Defaults 15 / 50 / 120. Set one to `0` to hide it. Daily lasts until midnight, weekly until the end of Sunday, monthly 30 days. |
 | `SITE_URL` | The frontend's address. Paystack sends people back here after paying. |
 
 In the Paystack dashboard (Settings → API Keys & Webhooks) set the **Webhook URL** to `https://<your-backend>/api/paystack/webhook`.

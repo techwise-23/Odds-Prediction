@@ -333,41 +333,54 @@ setInterval(() => $$('[data-expires]').forEach(el => { el.textContent = el.hasAt
 const CUR = { GHS: 'GH₵', NGN: '₦', ZAR: 'R', KES: 'KSh', USD: '$' };
 const money = n => (CUR[state.premium.currency] || state.premium.currency + ' ') + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
+const fmtDay = d => new Date(d).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+let chosenPlan = 'weekly';
+const planOf = () => state.premium.plans.find(x => x.key === chosenPlan) || state.premium.plans.find(x => x.key === 'weekly') || state.premium.plans[0];
+const planName = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
+
 function vipBanner() {
   const pr = state.premium;
   if (pr.active) {
-    return `<section class="vip-banner is-active"><div><b>All codes unlocked</b><span>Your weekly pass runs until Sunday night. Every code and long bet is open.</span></div></section>`;
+    return `<section class="vip-banner is-active"><div><b>All codes unlocked</b><span>Your pass runs until ${esc(fmtDay(pr.until))}. Every code and long bet is open.</span></div></section>`;
   }
-  const plan = pr.plans[0];
+  const low = pr.plans.length ? Math.min(...pr.plans.map(x => x.price)) : 0;
   return `<section class="vip-banner"><div class="vip-copy"><span class="vip-crown">${ICON.vip}</span>
-      <b>Unlock every code</b><span>Today's codes and long bets for ${plan ? esc(money(plan.price)) : 'a small fee'} a week, Monday to Sunday.</span></div>
+      <b>Unlock every code</b><span>Today's codes and long bets from ${low ? esc(money(low)) : 'a small fee'}: daily, weekly or monthly.</span></div>
     ${pr.enabled ? '<button type="button" class="get" data-unlock>Subscribe</button>' : '<span class="soon">Coming soon</span>'}</section>`;
 }
 
 const premiumDialog = $('#premium-dialog');
-function openPremium() {
-  const pr = state.premium, plan = pr.plans[0];
-  if (pr.active) { toast('You are subscribed. All codes are unlocked until Sunday.'); return; }
-  if (!pr.enabled || !plan) { toast('Subscriptions are not open yet. Check back soon.'); return; }
-  const ends = new Date(pr.endsAt).getTime() - 1;
+function planPicker() {
+  const pr = state.premium, cur = planOf();
   $('#premium-body').innerHTML = `
     <p class="muted">Subscribe to unlock today's booking codes and the long bets.</p>
-    <div class="sub-price"><b>${esc(money(plan.price))}</b><span>for 1 week<br><small>Monday to Sunday</small></span></div>
-    <ul class="vip-perks"><li>Today's booking codes for your bookmaker</li><li>Long bet booking codes</li><li>Valid until Sunday ${esc(new Date(ends).toLocaleDateString([], { day: 'numeric', month: 'short' }))}, no auto-renewal</li></ul>
+    <div class="plan-list" role="radiogroup" aria-label="Choose a plan">${pr.plans.map(x => `
+      <button type="button" class="plan" role="radio" aria-checked="${x.key === cur.key}" data-plan="${x.key}">
+        <span><b>${planName[x.key] || esc(x.name)}</b><small>${x.key === 'daily' ? 'Until midnight tonight' : x.key === 'weekly' ? '1 week, Monday to Sunday' : '30 days'}</small></span>
+        <span class="price">${esc(money(x.price))}</span>${x.key === 'weekly' ? '<em>Popular</em>' : ''}</button>`).join('')}</div>
+    <ul class="vip-perks"><li>Today's booking codes for your bookmaker</li><li>Long bet booking codes</li><li>Valid until ${esc(fmtDay(new Date(new Date(cur.endsAt).getTime() - 1)))}, no auto-renewal</li></ul>
     <label class="fld">Email for your receipt <small>(optional)</small><input id="pay-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></label>
-    <button type="button" class="btn-primary" id="pay-go">Subscribe ${esc(money(plan.price))}</button>
+    <button type="button" class="btn-primary" id="pay-go">Subscribe ${esc(money(cur.price))}</button>
     <p class="fineprint">You'll pay on Paystack's secure page with mobile money or card. We never see your card or MoMo PIN.</p>`;
+}
+function openPremium() {
+  const pr = state.premium;
+  if (pr.active) { toast('You are subscribed. All codes are unlocked until ' + fmtDay(pr.until) + '.'); return; }
+  if (!pr.enabled || !pr.plans.length) { toast('Subscriptions are not open yet. Check back soon.'); return; }
+  planPicker();
   if (!premiumDialog.open) premiumDialog.showModal();
 }
 async function startPayment() {
   const btn = $('#pay-go'); btn.disabled = true; btn.textContent = 'Opening Paystack…';
   try {
-    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: (state.premium.plans[0] || {}).key, email: $('#pay-email').value.trim(), returnUrl: location.origin + '/' } });
+    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: planOf().key, email: $('#pay-email').value.trim(), returnUrl: location.origin + '/' } });
     try { sessionStorage.setItem('oddsday_pay', r.reference); } catch { /* fine */ }
     location.href = r.url;
-  } catch (err) { btn.disabled = false; btn.textContent = 'Subscribe'; toast(err.message, 5000); }
+  } catch (err) { btn.disabled = false; btn.textContent = 'Subscribe ' + money(planOf().price); toast(err.message, 5000); }
 }
 premiumDialog.addEventListener('click', e => {
+  const pl = e.target.closest('[data-plan]');
+  if (pl) { const email = $('#pay-email') ? $('#pay-email').value : ''; chosenPlan = pl.dataset.plan; planPicker(); $('#pay-email').value = email; return; }
   if (e.target.closest('#pay-go')) startPayment();
   if (e.target === premiumDialog || e.target.closest('.premium-close')) premiumDialog.close();
 });

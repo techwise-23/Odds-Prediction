@@ -100,7 +100,6 @@ function composeHtml() {
       <button type="button" role="radio" aria-checked="${long}" data-kind="long" ${post.editing ? 'disabled' : ''}>Long bet booking code</button>
     </div>
     <label class="fld">Title <small>(optional, e.g. "Safe 5 odds")</small><input name="title" maxlength="80" value="${esc(ex ? ex.title : '')}" autocomplete="off"></label>
-    <label class="check"><input type="checkbox" name="premium" ${ex && ex.premium ? 'checked' : ''}> <span><b>Premium only</b> <small>Locked for free users. Paying members see the codes.</small></span></label>
     ${long ? `<label class="fld">Kickoff of the LAST match <small>(the post disappears 3 hours after this)</small>
       <input name="lastMatch" type="datetime-local" value="${ex && ex.lastMatchAt ? toLocalInput(ex.lastMatchAt) : ''}"></label>`
       : `<p class="muted-inline">Today's codes are removed automatically at 12:00 noon the next day.</p>`}
@@ -127,7 +126,7 @@ async function loadCodes() {
     const names = state.platforms.filter(b => p.entries[b.key]).map(b => esc(b.name)).join(', ');
     const when = p.kind === 'long' ? `until the last match, ${esc(fmtWhen(p.lastMatchAt))}` : `removed ${esc(fmtWhen(p.expiresAt))}`;
     return `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(p.title || (p.kind === 'long' ? 'Long bet' : "Today's code"))}</h3>
-      <span>${p.premium ? '<b class="vip-tag">Premium</b> ' : ''}${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
+      <span>${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
       <div class="adm-user-btns"><button class="add" data-post-edit="${p.id}">Edit</button><button class="add danger" data-post-del="${p.id}">Delete</button></div></article>`;
   }).join('') : '<div class="empty">Nothing posted yet. Users will see "not posted yet" until you add a code.</div>';
   postCache = r.posts;
@@ -190,7 +189,7 @@ document.addEventListener('submit', async e => {
     if (img) entry.image = img; else if (old && img === undefined) entry.keepImage = old;
     if (code || link || entry.image || entry.keepImage) entries[p.key] = entry;
   }
-  const body = { kind: post.kind, title: form.elements.title.value, entries, premium: form.elements.premium.checked };
+  const body = { kind: post.kind, title: form.elements.title.value, entries };
   if (post.kind === 'long') {
     const v = form.elements.lastMatch.value;
     if (!v) { err.textContent = 'Enter the kickoff time of the last match.'; return; }

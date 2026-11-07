@@ -110,16 +110,16 @@ function cleanup() {
   return r.changes;
 }
 
-// Active posts with their per-bookmaker entries, newest first. Premium posts are returned LOCKED (no codes, links or
-// images, only which bookmakers are covered) unless the viewer has premium access.
+// Active posts with their per-bookmaker entries, newest first. Without an active pass they come back LOCKED (no codes,
+// links or images, only which bookmakers are covered).
 function active({ premium = true } = {}) {
   const now = new Date().toISOString();
   return db.prepare('SELECT * FROM posts WHERE expires_at > ? ORDER BY id DESC').all(now).map(p => {
     const rows = db.prepare('SELECT platform, code, link, image_id FROM post_entries WHERE post_id = ?').all(p.id);
-    const locked = !!p.premium && !premium;
+    const locked = !premium; // every code needs an active weekly pass
     return {
       id: p.id, kind: p.kind, title: p.title, date: p.date, lastMatchAt: p.last_match_at, expiresAt: p.expires_at, createdAt: p.created_at,
-      premium: !!p.premium, locked,
+      premium: false, locked,
       books: rows.map(e => e.platform),
       entries: locked ? {} : Object.fromEntries(rows.map(e => [e.platform, { code: e.code, link: e.link, imageId: e.image_id }])),
     };
@@ -127,8 +127,8 @@ function active({ premium = true } = {}) {
 }
 
 // Is this image part of a premium post?
-const imageIsPremium = id => !!db.prepare('SELECT 1 FROM post_entries e JOIN posts p ON p.id = e.post_id WHERE e.image_id = ? AND p.premium = 1').get(id);
+const imageIsPremium = () => true; // every slip image is for subscribers
 
 const image = id => db.prepare('SELECT mime, data FROM post_images WHERE id = ?').get(id) || null;
 
-module.exports = { create, update, remove, cleanup, active, image, imageIsPremium, localDate };
+module.exports = { zonedInstant, addDays, create, update, remove, cleanup, active, image, imageIsPremium, localDate };

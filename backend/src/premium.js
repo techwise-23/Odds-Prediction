@@ -3,11 +3,18 @@
 const crypto = require('crypto');
 const db = require('./db');
 const config = require('./config');
+const posts = require('./posts');
 
 const plans = () => config.premiumPlans.filter(p => p.price > 0);
 const planOf = key => plans().find(p => p.key === key);
 const enabled = () => !!config.paystack.secret;
 const toMinor = price => Math.round(price * 100);
+// The pass runs Monday to Sunday: it ends at the start of the next Monday (app time zone).
+function weekEnd() {
+  const today = posts.localDate(0), dow = new Date(today + 'T12:00:00Z').getUTCDay(); // 0 = Sunday
+  return posts.zonedInstant(posts.addDays(today, (7 - dow) % 7 + 1), 0);
+}
+const daysLeft = () => Math.max(1, Math.ceil((weekEnd() - Date.now()) / 86400000));
 const isActive = u => !!(u && u.premium_until && new Date(u.premium_until) > new Date());
 
 function status(user) {
@@ -16,7 +23,7 @@ function status(user) {
 
 // What the apps need to show the upgrade screen.
 function offer() {
-  return { enabled: enabled(), currency: config.paystack.currency, plans: plans().map(({ key, name, days, price, best }) => ({ key, name, days, price, best: !!best })) };
+  return { enabled: enabled(), currency: config.paystack.currency, endsAt: weekEnd().toISOString(), daysLeft: daysLeft(), plans: plans().map(({ key, name, price }) => ({ key, name, price })) };
 }
 
 async function paystack(method, path, body) {
@@ -37,18 +44,18 @@ const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').tri
 // Step 1: create a pending payment and get Paystack's checkout address.
 async function checkout(user, planKey, { email, callbackUrl }) {
   if (!enabled()) throw Object.assign(new Error('Payments are not switched on yet. Please check back soon.'), { status: 503 });
-  const plan = planOf(planKey);
+  const plan = planOf(planKey) || plans()[0];
   if (!plan) throw Object.assign(new Error('Choose a plan'), { status: 400 });
   const reference = 'OD-' + Date.now().toString(36).toUpperCase() + '-' + crypto.randomBytes(5).toString('hex').toUpperCase();
   const amount = toMinor(plan.price);
   const data = await paystack('POST', '/transaction/initialize', {
-    email: validEmail(email) || `${user.phone}@oddsday.app`,
+    email: validEmail(email) || `${user.phone}@pawaodds.app`,
     amount, currency: config.paystack.currency, reference,
     callback_url: callbackUrl || undefined,
-    metadata: { user_id: user.id, plan: plan.key, custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: `${plan.name} premium` }] },
+    metadata: { user_id: user.id, plan: plan.key, custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: `${plan.name} (until Sunday)` }] },
   });
   db.prepare('INSERT INTO payments (reference, user_id, plan, days, amount, currency) VALUES (?,?,?,?,?,?)')
-    .run(reference, user.id, plan.key, plan.days, amount, config.paystack.currency);
+    .run(reference, user.id, plan.key, daysLeft(), amount, config.paystack.currency);
   return { reference, url: data.authorization_url };
 }
 
@@ -59,9 +66,10 @@ const grant = db.transaction((reference, channel) => {
   const done = db.prepare("UPDATE payments SET status = 'success', paid_at = ?, channel = ? WHERE reference = ? AND status != 'success'")
     .run(new Date().toISOString(), channel || null, reference).changes;
   if (done) {
+    // Access lasts until the end of this week's Sunday (a later payment never shortens an existing pass).
     const u = db.prepare('SELECT premium_until FROM users WHERE id = ?').get(pay.user_id);
-    const from = u && u.premium_until && new Date(u.premium_until) > new Date() ? new Date(u.premium_until) : new Date();
-    db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run(new Date(from.getTime() + pay.days * 86400000).toISOString(), pay.user_id);
+    const end = new Date(weekEnd().getTime() - 1000), cur = u && u.premium_until ? new Date(u.premium_until) : null;
+    db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run((cur && cur > end ? cur : end).toISOString(), pay.user_id);
   }
   return { ...pay, newlyPaid: !!done };
 });
@@ -81,7 +89,7 @@ async function verify(reference) {
   return { paid: true, pay: grant(reference, t.channel) };
 }
 
-// Paystack calls this itself when a payment succeeds, so users still get premium if they close the page early.
+// Paystack calls this itself when a payment succeeds, so users still get access if they close the page early.
 function webhookValid(rawBody, signature) {
   if (!enabled() || !rawBody || !signature) return false;
   const mine = crypto.createHmac('sha512', config.paystack.secret).update(rawBody).digest('hex');

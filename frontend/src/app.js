@@ -224,7 +224,7 @@ function remaining(iso) {
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
 
 function postCard(p, i) {
-  const long = p.kind === 'long', vip = p.premium, locked = p.locked;
+  const long = p.kind === 'long', vip = false, locked = p.locked;
   const books = state.platforms.filter(b => p.books.includes(b.key));
   const created = new Date(p.createdAt.replace(' ', 'T') + (/[zZ]$/.test(p.createdAt) ? '' : 'Z')).getTime();
   const span = long ? Math.max(1, new Date(p.lastMatchAt) - created) : 0;
@@ -256,7 +256,7 @@ function ghostTicket(kind) {
 }
 
 function renderPosts() {
-  const daily = state.posts.filter(p => p.kind === 'daily' && !p.premium), long = state.posts.filter(p => p.kind === 'long' && !p.premium), vip = state.posts.filter(p => p.premium);
+  const daily = state.posts.filter(p => p.kind === 'daily'), long = state.posts.filter(p => p.kind === 'long');
   const next = state.posts.filter(p => !p.locked).map(p => p.kind === 'long' ? null : p.expiresAt).filter(Boolean).sort()[0];
   const live = state.posts.length;
   let i = 0;
@@ -267,7 +267,7 @@ function renderPosts() {
     <section class="hero">
       <div class="stadium">${uniq(STADIUM)}</div>
       <div class="hero-copy">
-        <p class="hello">${greeting()},${state.premium.active ? `<span class="vip-badge">${ICON.vip}Premium until ${esc(new Date(state.premium.until).toLocaleDateString([], { day: 'numeric', month: 'short' }))}</span>` : ''}</p>
+        <p class="hello">${greeting()},${state.premium.active ? `<span class="vip-badge">${ICON.vip}Unlocked until ${esc(new Date(state.premium.until).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }))}</span>` : ''}</p>
         <h1>${live ? `${live} live slip${live === 1 ? '' : 's'}<br><em>ready</em> to load` : 'Your next slip<br><em>lands</em> here'}</h1>
         <p class="hero-sub">${live ? "Don't miss today's winning opportunities!" : "We'll show the next booking code here as soon as it's posted."}</p>
         <button type="button" class="hero-cta" data-scroll="slips">${live ? 'View Slips' : 'Stay Ready'} <i aria-hidden="true">›</i></button>
@@ -284,8 +284,6 @@ function renderPosts() {
       <header><span class="sect-ico">${SI.cal}</span><h2>Today's Booking Code</h2><time>${SI.cal}${esc(today)}<i aria-hidden="true">⌄</i></time></header>
       <div class="tickets">${daily.length ? daily.map(p => postCard(p, i++)).join('') : ghostTicket('daily')}</div>
     </section>
-    ${vip.length || state.premium.plans.length ? `<section class="sect vip"><header><h2>Premium Odds</h2><span class="pill">${SI.star}Top Picks</span></header>
-      <div class="tickets">${vip.length ? vip.map(p => postCard(p, i++)).join('') : ghostTicket('vip')}</div></section>` : ''}
     <section class="sect long"><header><span class="sect-ico">${SI.bars}</span><h2>Long Bet Booking Code</h2></header>
       <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div></section>
     ${vipBanner()}
@@ -322,8 +320,7 @@ document.querySelector('.dock').addEventListener('click', e => {
   $$('.dock button').forEach(x => x.classList.toggle('on', x === b && to !== 'account' && to !== 'alerts'));
   if (to === 'account' || to === 'alerts') document.querySelector('.dock [data-dock="home"]').classList.add('on');
   if (to === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
-  if (to === 'premium') openPremium();
-  if (to === 'alerts') { if (state.telegram) $('#tg-open').click(); else toast('Telegram alerts are not set up yet.'); }
+    if (to === 'alerts') { if (state.telegram) $('#tg-open').click(); else toast('Telegram alerts are not set up yet.'); }
   if (to === 'account') $('#menu-btn').click();
 });
 document.addEventListener('click', e => { const s = e.target.closest('[data-scroll]'); if (s) $('#slips').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
@@ -339,43 +336,38 @@ const money = n => (CUR[state.premium.currency] || state.premium.currency + ' ')
 function vipBanner() {
   const pr = state.premium;
   if (pr.active) {
-    const days = Math.max(1, Math.ceil((new Date(pr.until) - Date.now()) / 86400000));
-    return `<section class="vip-banner is-active"><div><b>You're a Premium member</b><span>${days} day${days === 1 ? '' : 's'} left. Premium slips are unlocked.</span></div>
-      ${pr.enabled ? '<button type="button" class="get" data-unlock>Add time</button>' : ''}</section>`;
+    return `<section class="vip-banner is-active"><div><b>All codes unlocked</b><span>Your weekly pass runs until Sunday night. Every code and long bet is open.</span></div></section>`;
   }
-  const low = pr.plans.length ? pr.plans.reduce((m, p) => Math.min(m, p.price), Infinity) : 0;
+  const plan = pr.plans[0];
   return `<section class="vip-banner"><div class="vip-copy"><span class="vip-crown">${ICON.vip}</span>
-      <b>Go Premium</b><span>Unlock higher-odds slips and long bets that free members don't see.${pr.enabled && low ? ` From ${esc(money(low))}.` : ''}</span></div>
-    ${pr.enabled ? '<button type="button" class="get" data-unlock>See plans</button>' : '<span class="soon">Coming soon</span>'}</section>`;
+      <b>Unlock every code</b><span>Today's codes and long bets for ${plan ? esc(money(plan.price)) : 'a small fee'} a week, Monday to Sunday.</span></div>
+    ${pr.enabled ? '<button type="button" class="get" data-unlock>Subscribe</button>' : '<span class="soon">Coming soon</span>'}</section>`;
 }
 
 const premiumDialog = $('#premium-dialog');
-const premState = { plan: null };
 function openPremium() {
-  const pr = state.premium;
-  if (!pr.enabled) { toast('Premium is not open yet. Check back soon.'); return; }
-  if (!premState.plan || !pr.plans.some(p => p.key === premState.plan)) premState.plan = (pr.plans.find(p => p.best) || pr.plans[0]).key;
+  const pr = state.premium, plan = pr.plans[0];
+  if (pr.active) { toast('You are subscribed. All codes are unlocked until Sunday.'); return; }
+  if (!pr.enabled || !plan) { toast('Subscriptions are not open yet. Check back soon.'); return; }
+  const ends = new Date(pr.endsAt).getTime() - 1;
   $('#premium-body').innerHTML = `
-    <p class="muted">${pr.active ? 'Add more time to your Premium membership.' : 'Pay once for the time you want. No auto-renewal.'}</p>
-    <div class="plan-list" role="radiogroup" aria-label="Plan">${pr.plans.map(p => `<button type="button" class="plan" role="radio" aria-checked="${p.key === premState.plan}" data-plan="${esc(p.key)}">
-        <span><b>${esc(p.name)}</b><small>${p.days} day${p.days === 1 ? '' : 's'}</small></span><span class="price">${esc(money(p.price))}</span>${p.best ? '<em>Best value</em>' : ''}</button>`).join('')}</div>
+    <p class="muted">Subscribe to unlock today's booking codes and the long bets.</p>
+    <div class="sub-price"><b>${esc(money(plan.price))}</b><span>for 1 week<br><small>Monday to Sunday</small></span></div>
+    <ul class="vip-perks"><li>Today's booking codes for your bookmaker</li><li>Long bet booking codes</li><li>Valid until Sunday ${esc(new Date(ends).toLocaleDateString([], { day: 'numeric', month: 'short' }))}, no auto-renewal</li></ul>
     <label class="fld">Email for your receipt <small>(optional)</small><input id="pay-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></label>
-    <ul class="vip-perks"><li>Premium slips with bigger odds</li><li>Long bets with codes for your bookmaker</li><li>Instant access after payment</li></ul>
-    <button type="button" class="btn-primary" id="pay-go">Pay with Paystack</button>
+    <button type="button" class="btn-primary" id="pay-go">Subscribe ${esc(money(plan.price))}</button>
     <p class="fineprint">You'll pay on Paystack's secure page with mobile money or card. We never see your card or MoMo PIN.</p>`;
   if (!premiumDialog.open) premiumDialog.showModal();
 }
 async function startPayment() {
   const btn = $('#pay-go'); btn.disabled = true; btn.textContent = 'Opening Paystack…';
   try {
-    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: premState.plan, email: $('#pay-email').value.trim(), returnUrl: location.origin + '/' } });
+    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: (state.premium.plans[0] || {}).key, email: $('#pay-email').value.trim(), returnUrl: location.origin + '/' } });
     try { sessionStorage.setItem('oddsday_pay', r.reference); } catch { /* fine */ }
     location.href = r.url;
-  } catch (err) { btn.disabled = false; btn.textContent = 'Pay with Paystack'; toast(err.message, 5000); }
+  } catch (err) { btn.disabled = false; btn.textContent = 'Subscribe'; toast(err.message, 5000); }
 }
 premiumDialog.addEventListener('click', e => {
-  const plan = e.target.closest('[data-plan]');
-  if (plan) { premState.plan = plan.dataset.plan; $$('[data-plan]', premiumDialog).forEach(b => b.setAttribute('aria-checked', b === plan)); }
   if (e.target.closest('#pay-go')) startPayment();
   if (e.target === premiumDialog || e.target.closest('.premium-close')) premiumDialog.close();
 });
@@ -390,7 +382,7 @@ async function checkReturn() {
     toast('Confirming your payment…', 8000);
     const r = await api('/api/premium/verify', { method: 'POST', body: { reference: ref } });
     await loadPosts();
-    toast(r.paid ? 'Payment received. Premium is on.' : 'Payment not completed. You were not charged.', 5000);
+    toast(r.paid ? 'Payment received. All codes are unlocked.' : 'Payment not completed. You were not charged.', 5000);
   } catch (err) { toast(err.message, 7000); }
 }
 

@@ -33,11 +33,11 @@ choose their bookmaker, and see that company's code. Expired posts are deleted e
 Set `AUTO_PREDICTIONS=1` on the backend to bring the old generated picks back (the public app no longer shows them).
 Note: `npm run build:phone` (the single-file offline app) was not updated for booking codes.
 
-## Premium subscription (Paystack)
+## Weekly pass (Paystack)
 
-Members pay with Paystack (mobile money or card) to unlock **Premium** posts. In the admin console, tick **Premium only** when you
-post a code; free users see that slip locked, paying members see the codes. Plans are one-time (no auto-renewal) and stack if
-someone pays again.
+Every booking code is locked until the user subscribes. Tapping a code opens a prompt: **GH₵50 for 1 week, Monday to Sunday**, with a
+Subscribe button that opens Paystack checkout (mobile money or card). When payment is confirmed everything unlocks until the end of
+that Sunday (app time zone, default Africa/Accra). There is no auto-renewal. Admins always see the codes.
 
 Backend variables:
 
@@ -45,11 +45,11 @@ Backend variables:
 | --- | --- |
 | `PAYSTACK_SECRET_KEY` | Your Paystack secret key (`sk_live_...`). Payments stay off until it is set. |
 | `PAYSTACK_CURRENCY` | Default `GHS`. |
-| `PREMIUM_PRICE_DAILY` / `_WEEKLY` / `_MONTHLY` | Prices in whole cedis. Defaults 5 / 25 / 80. Set one to `0` to hide that plan. |
+| `PREMIUM_PRICE_WEEKLY` | Weekly pass price in whole cedis. Default 50. |
 | `SITE_URL` | The frontend's address. Paystack sends people back here after paying. |
 
 In the Paystack dashboard (Settings → API Keys & Webhooks) set the **Webhook URL** to `https://<your-backend>/api/paystack/webhook`.
-The webhook means members still get Premium if they close the page right after paying. Access is only ever granted after the
+The webhook means subscribers still get access if they close the page right after paying. Access is only ever granted after the
 server confirms the payment and the exact amount with Paystack. Test first with your `sk_test_...` key.
 
 ## Run it locally

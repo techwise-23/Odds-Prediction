@@ -1,4 +1,4 @@
-// OddsDay public app — plain JavaScript, no build step.
+// PawaOdds public app — plain JavaScript, no build step.
 // Talks to the API at ODDSDAY_CONFIG.apiUrl (see config.js).
 const API_URL = ((window.ODDSDAY_CONFIG && window.ODDSDAY_CONFIG.apiUrl) || '').replace(/\/$/, '');
 const $ = (s, el = document) => el.querySelector(s);
@@ -51,7 +51,7 @@ function setAuthMode(mode) {
   $('#auth-title').textContent = reg ? 'Create your free account' : 'Welcome back';
   $('#auth-sub').textContent = reg ? 'Just your phone number. No password, no email.' : 'Enter your phone number to log in.';
   $('#auth-form [type=submit]').textContent = reg ? 'Sign up' : 'Log in';
-  $('#auth-alt-text').textContent = reg ? 'Already have an account?' : 'New to OddsDay?';
+  $('#auth-alt-text').textContent = reg ? 'Already have an account?' : 'New to PawaOdds?';
   $('#auth-alt').textContent = reg ? 'Log in' : 'Sign up';
   $('.form-error').textContent = '';
 }

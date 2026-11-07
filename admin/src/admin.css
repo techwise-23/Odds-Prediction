@@ -162,3 +162,5 @@ body.admin-page .subnav { top: calc(62px + env(safe-area-inset-top)); }
 
 .storage-warn { margin: 0 0 14px; padding: 14px 16px; border-radius: 12px; background: #5A1414; border: 1px solid #FF6B63; color: #FFE1DE; font-size: .92rem; }
 .storage-warn b { display: block; color: #fff; margin-bottom: 2px; font-size: 1rem; } .storage-warn code { background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 5px; }
+
+.logo span { color: #F2B705; -webkit-text-fill-color: #F2B705; }

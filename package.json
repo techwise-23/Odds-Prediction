@@ -1,7 +1,7 @@
 {
   "name": "oddsday",
   "private": true,
-  "description": "OddsDay: three separate apps (backend API, public frontend, admin console)",
+  "description": "PawaOdds: three separate apps (backend API, public frontend, admin console)",
   "scripts": {
     "install:all": "npm --prefix backend install",
     "dev": "node dev.js",

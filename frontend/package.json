@@ -2,7 +2,7 @@
   "name": "oddsday-frontend",
   "version": "1.0.0",
   "private": true,
-  "description": "OddsDay frontend (static site)",
+  "description": "PawaOdds frontend (static site)",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",

@@ -39,7 +39,7 @@ catch (e) { console.error('Schedule not started (check time zone and cron settin
 
 const server = app.listen(config.port, async () => {
  try {
-  console.log(`OddsDay API on http://localhost:${config.port} (${config.apiKey ? 'LIVE data' : 'DEMO data — add API_FOOTBALL_KEY for real games'})`);
+  console.log(`PawaOdds API on http://localhost:${config.port} (${config.apiKey ? 'LIVE data' : 'DEMO data — add API_FOOTBALL_KEY for real games'})`);
   console.log(`Allowed browser origins: ${config.corsOrigins.join(', ')}`);
   if (config.autoPredictions) {
     // First start of the day: make sure today's picks exist.

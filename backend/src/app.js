@@ -21,7 +21,7 @@ app.use(cookieParser());
 
 // Health check for Railway and uptime monitors.
 app.get('/health', (req, res) => { db.prepare('SELECT 1').get(); res.json({ ok: true, uptime: Math.round(process.uptime()) }); });
-app.get('/', (req, res) => res.json({ name: 'OddsDay API', ok: true }));
+app.get('/', (req, res) => res.json({ name: 'PawaOdds API', ok: true }));
 
 app.use('/api/admin', require('./routes/admin'));   // admin console (own login + session)
 app.use('/api', require('./routes/auth'));          // sign up, log in, account settings, Telegram

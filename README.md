@@ -1,4 +1,4 @@
-# OddsDay
+# PawaOdds
 
 Daily football predictions sorted by odds band, with ready-made accumulators and booking codes.
 Three separate apps that talk to each other over HTTP:

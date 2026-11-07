@@ -54,7 +54,7 @@ async function handleMessage(m) {
   if (cmd === '/start' && arg) {
     const u = db.prepare(`SELECT id, phone FROM users WHERE telegram_link_code = ?
       AND telegram_link_at >= datetime('now', ?)`).get(arg, `-${LINK_MINUTES} minutes`);
-    if (!u) return send(chatId, 'That link has expired. Open OddsDay, tap your profile, then <b>Telegram alerts</b> to get a new one.');
+    if (!u) return send(chatId, 'That link has expired. Open PawaOdds, tap your profile, then <b>Telegram alerts</b> to get a new one.');
     db.transaction(() => {
       db.prepare('UPDATE users SET telegram_chat_id = NULL WHERE telegram_chat_id = ?').run(chatId);
       db.prepare('UPDATE users SET telegram_chat_id = ?, telegram_link_code = NULL, telegram_link_at = NULL WHERE id = ?').run(chatId, u.id);
@@ -63,9 +63,9 @@ async function handleMessage(m) {
   }
   if (cmd === '/stop') {
     const r = db.prepare('UPDATE users SET telegram_chat_id = NULL WHERE telegram_chat_id = ?').run(chatId);
-    return send(chatId, r.changes ? 'Alerts are off. You can turn them on again from the OddsDay site.' : 'This chat is not linked to an OddsDay account.');
+    return send(chatId, r.changes ? 'Alerts are off. You can turn them on again from the PawaOdds site.' : 'This chat is not linked to an PawaOdds account.');
   }
-  return send(chatId, 'Hi! To get OddsDay alerts, open the site, tap your profile, choose <b>Telegram alerts</b> and press <b>Connect</b>.');
+  return send(chatId, 'Hi! To get PawaOdds alerts, open the site, tap your profile, choose <b>Telegram alerts</b> and press <b>Connect</b>.');
 }
 
 // Each call to startPolling begins a new generation; older loops see the change and stop. That makes it

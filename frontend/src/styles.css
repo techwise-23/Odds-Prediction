@@ -1,4 +1,4 @@
-/* OddsDay — gold theme */
+/* PawaOdds — gold theme */
 :root {
   /* Gold page, royal-blue panels and bars, white text on blue, navy text on gold. */
   --page: linear-gradient(165deg, #F7E08E 0%, #E6C255 30%, #CFA035 62%, #E9C862 100%);
@@ -938,3 +938,10 @@ html { background: #EAF1FF; }
 .day .sect > header time { padding: 8px 12px; }
 .day .sect h2 { font-size: .98rem; }
 .day .sect-ico { width: 30px; height: 30px; } .day .sect-ico svg { width: 26px; height: 26px; }
+
+/* PawaOdds brand: icon + wordmark (white "Pawa" -> navy on light pages, gold "Odds") */
+.app-logo { display: block; width: 48px; height: 48px; flex: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(11,36,102,.28); }
+.day .brand { gap: 10px; }
+.day .logo { font-size: 1.85rem; }
+.day .logo span { color: #F2A900; -webkit-text-fill-color: #F2A900; }
+.day .land-top .app-logo { width: 54px; height: 54px; }

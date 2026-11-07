@@ -101,7 +101,7 @@ module.exports = {
   // Telegram alerts (optional). Create a bot with @BotFather and put its token here.
   telegramToken: env.TELEGRAM_BOT_TOKEN || '',
   telegramApi: env.TELEGRAM_API_BASE || 'https://api.telegram.org', // only changed for tests
-  // Public address of the site, used for the "Open OddsDay" link in messages.
+  // Public address of the site, used for the "Open PawaOdds" link in messages.
   siteUrl: env.SITE_URL || '',
 
   // Phone numbers listed here become admins (can re-run predictions from the site).

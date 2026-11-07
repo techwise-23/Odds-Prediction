@@ -28,7 +28,7 @@ let html = read('src/index.html')
   .replace('<link rel="stylesheet" href="styles.css">', () => `<style>\n${read('src/styles.css')}\n</style>`)
   .replace('<script src="config.js"></script>\n  ', '')
   .replace('<script src="app.js"></script>', () => `<script>\n${script}\n</script>`)
-  .replace(/<title>[^<]*<\/title>/, '<title>OddsDay</title>');
+  .replace(/<title>[^<]*<\/title>/, '<title>PawaOdds</title>');
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(root, 'dist', 'oddsday.html'), html);

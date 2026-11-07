@@ -1,4 +1,4 @@
-// OddsDay admin console — its own site, with its own login. Talks to the API at ODDSDAY_CONFIG.apiUrl (see config.js).
+// PawaOdds admin console — its own site, with its own login. Talks to the API at ODDSDAY_CONFIG.apiUrl (see config.js).
 const API_URL = ((window.ODDSDAY_CONFIG && window.ODDSDAY_CONFIG.apiUrl) || '').replace(/\/$/, '');
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

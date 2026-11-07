@@ -1,0 +1,13 @@
+{
+  "name": "PawaOdds",
+  "short_name": "PawaOdds",
+  "description": "Daily and long-bet booking codes for your bookmaker.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0B2466",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

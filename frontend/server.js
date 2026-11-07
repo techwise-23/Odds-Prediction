@@ -25,4 +25,4 @@ http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream',
     'Cache-Control': file.endsWith('.html') ? 'no-cache' : 'public, max-age=300' });
   fs.createReadStream(file).pipe(res);
-}).listen(port, () => console.log(`OddsDay app on http://localhost:${port} (API: ${apiUrl || 'from src/config.js'})`));
+}).listen(port, () => console.log(`PawaOdds app on http://localhost:${port} (API: ${apiUrl || 'from src/config.js'})`));

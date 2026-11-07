@@ -5,7 +5,7 @@ const telegram = require('./telegram');
 const { escapeHtml: h } = telegram;
 
 const platformOf = key => config.platforms.find(p => p.key === key) || config.platforms[0];
-const footer = () => (config.siteUrl ? `\n\n<a href="${h(config.siteUrl)}">Open OddsDay</a>` : '');
+const footer = () => (config.siteUrl ? `\n\n<a href="${h(config.siteUrl)}">Open PawaOdds</a>` : '');
 const money = n => Number(n).toFixed(2);
 
 // Send once per user per (kind, ref). The log row is removed again if sending failed, so a later run retries.

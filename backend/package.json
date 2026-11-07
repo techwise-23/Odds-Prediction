@@ -1,7 +1,7 @@
 {
   "name": "oddsday-backend",
   "version": "1.0.0",
-  "description": "OddsDay API: predictions, accounts, admin and Telegram",
+  "description": "PawaOdds API: predictions, accounts, admin and Telegram",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

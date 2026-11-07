@@ -25,4 +25,4 @@ http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream',
     'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' });
   fs.createReadStream(file).pipe(res);
-}).listen(port, () => console.log(`OddsDay admin on http://localhost:${port} (API: ${apiUrl || 'from src/config.js'})`));
+}).listen(port, () => console.log(`PawaOdds admin on http://localhost:${port} (API: ${apiUrl || 'from src/config.js'})`));

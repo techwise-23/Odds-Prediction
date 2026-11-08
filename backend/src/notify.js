@@ -17,7 +17,7 @@ async function sendOnce(user, kind, ref, html) {
   return ok;
 }
 
-const linkedUsers = flag => db.prepare(`SELECT * FROM users WHERE telegram_chat_id IS NOT NULL AND ${flag} = 1`).all();
+const linkedUsers = flag => db.prepare(`SELECT * FROM users WHERE telegram_chat_id IS NOT NULL AND blocked = 0 AND ${flag} = 1`).all();
 
 function tickets(date) {
   const order = config.accas.map(a => a.key), now = new Date().toISOString();

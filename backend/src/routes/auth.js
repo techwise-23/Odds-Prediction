@@ -5,7 +5,7 @@ const { normalizePhone } = require('../phone');
 const db = require('../db');
 const telegram = require('../telegram');
 const referrals = require('../referrals');
-const { auth, limited, setUserSession, clearSession, USER_COOKIE, publicUser } = require('../middleware/auth');
+const { BLOCKED_MSG, auth, limited, setUserSession, clearSession, USER_COOKIE, publicUser } = require('../middleware/auth');
 
 const router = express.Router();
 const setSession = setUserSession;
@@ -34,6 +34,7 @@ router.post('/login', limited, (req, res) => {
   const phone = phoneFrom(req, res); if (!phone) return;
   const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
   if (!user) return res.status(404).json({ error: 'No account for that number yet. Tap Sign up to create one.' });
+  if (user.blocked) return res.status(403).json({ error: BLOCKED_MSG, blocked: true });
   const token = setSession(res, user);
   res.json({ user: publicUser(user), token });
 });

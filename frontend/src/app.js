@@ -29,6 +29,7 @@ async function api(path, opts = {}) {
   }); }
   catch { throw new Error(API_URL ? `Can't reach the server at ${API_URL}. Check that the backend is running, API_URL is its public https address, and CORS_ORIGINS on the backend lists this site.` : "Can't reach the server. API_URL is not set for this site."); }
   const data = await res.json().catch(() => ({}));
+  if (res.status === 403 && data.blocked) { setToken(''); showAuth(); $('.form-error').textContent = data.error; throw new Error(data.error); }
   if (res.status === 401 && path !== '/api/login') { setToken(''); showAuth(); throw new Error('Please log in'); }
   if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
   if (path === '/api/login' || path === '/api/register') setToken(data.token);

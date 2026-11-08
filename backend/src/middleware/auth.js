@@ -45,8 +45,10 @@ function userFrom(req, cookie, aud) {
   } catch { return null; }
 }
 
+const BLOCKED_MSG = 'This account has been blocked. Contact PawaOdds support if you think this is a mistake.';
 function auth(req, res, next) {
   req.user = userFrom(req, USER_COOKIE, 'user');
+  if (req.user && req.user.blocked) return res.status(403).json({ error: BLOCKED_MSG, blocked: true });
   req.user ? next() : res.status(401).json({ error: 'Please log in' });
 }
 
@@ -62,7 +64,7 @@ function authAny(req, res, next) {
 function adminAuth(req, res, next) {
   const u = userFrom(req, ADMIN_COOKIE, 'admin');
   if (!u) return res.status(401).json({ error: 'Please log in' });
-  if (!u.is_admin) return res.status(403).json({ error: 'Admins only' });
+  if (!u.is_admin || u.blocked) return res.status(403).json({ error: 'Admins only' });
   req.user = u; next();
 }
 
@@ -78,4 +80,4 @@ function limited(req, res, next) {
 function publicUser(u) { return { id: u.id, phone: u.phone, name: displayPhone(u.phone), isAdmin: !!u.is_admin, platform: u.platform || 'sportybet',
   premium: !!(u.premium_until && new Date(u.premium_until) > new Date()), premiumUntil: u.premium_until && new Date(u.premium_until) > new Date() ? u.premium_until : null }; }
 
-module.exports = { USER_COOKIE, ADMIN_COOKIE, setUserSession, setAdminSession, clearSession, auth, authAny, adminAuth, limited, publicUser };
+module.exports = { BLOCKED_MSG, USER_COOKIE, ADMIN_COOKIE, setUserSession, setAdminSession, clearSession, auth, authAny, adminAuth, limited, publicUser };

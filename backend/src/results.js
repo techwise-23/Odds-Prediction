@@ -16,13 +16,14 @@ const listAll = () => db.prepare('SELECT * FROM results ORDER BY date DESC, id D
 
 // For users: totals over the last 30 days of posts, the current winning run, and the latest results. No codes in here.
 function publicView() {
+  const today = require('./posts').localDate(0);
   const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const c = { won: 0, lost: 0, void: 0, pending: 0 };
-  for (const r of db.prepare('SELECT status, COUNT(*) n FROM results WHERE date >= ? GROUP BY status').all(since)) c[r.status] = r.n;
+  for (const r of db.prepare('SELECT status, COUNT(*) n FROM results WHERE date >= ? AND date <= ? GROUP BY status').all(since, today)) c[r.status] = r.n;
   const settled = c.won + c.lost;
   let streak = 0;
-  for (const r of db.prepare("SELECT status FROM results WHERE status IN ('won','lost') ORDER BY date DESC, id DESC LIMIT 100").all()) { if (r.status !== 'won') break; streak++; }
-  const items = db.prepare('SELECT * FROM results ORDER BY date DESC, id DESC LIMIT 40').all().map(row);
+  for (const r of db.prepare("SELECT status FROM results WHERE status IN ('won','lost') AND date <= ? ORDER BY date DESC, id DESC LIMIT 100").all(today)) { if (r.status !== 'won') break; streak++; }
+  const items = db.prepare('SELECT * FROM results WHERE date <= ? ORDER BY date DESC, id DESC LIMIT 40').all(today).map(row);
   return { days: 30, ...c, rate: settled ? Math.round((c.won / settled) * 100) : null, streak, items };
 }
 

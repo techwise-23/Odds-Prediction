@@ -57,7 +57,17 @@ function normaliseEntries(entries) {
   return out;
 }
 
-function create({ kind, title, lastMatchAt, entries, premium, by }) {
+// "2026-11-10" -> that day, valid only from today up to 60 days ahead.
+function cleanDate(v) {
+  const d = String(v || '').trim();
+  if (!d) return localDate(0);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || isNaN(Date.parse(d + 'T12:00:00Z'))) throw Object.assign(new Error('That date is not valid'), { status: 400 });
+  if (d < localDate(0)) throw Object.assign(new Error('That day has already passed'), { status: 400 });
+  if (d > localDate(60)) throw Object.assign(new Error('You can schedule at most 60 days ahead'), { status: 400 });
+  return d;
+}
+
+function create({ kind, title, lastMatchAt, entries, premium, by, date: wanted }) {
   if (!['daily', 'long'].includes(kind)) throw Object.assign(new Error('Choose Today or Long bet'), { status: 400 });
   let last = null;
   if (kind === 'long') {
@@ -66,16 +76,26 @@ function create({ kind, title, lastMatchAt, entries, premium, by }) {
   }
   const rows = normaliseEntries(entries);
   if (!rows.length) throw Object.assign(new Error('Add a code, an image or a link for at least one bookmaker'), { status: 400 });
-  const date = localDate(0);
+  const date = kind === 'daily' ? cleanDate(wanted) : localDate(0);
+  const startsAt = date > localDate(0) ? zonedInstant(date, 0) : null; // a future day's codes go live at midnight
   const expires = expiryFor(kind, date, last);
   if (expires <= new Date()) throw Object.assign(new Error('That time has already passed'), { status: 400 });
   return db.transaction(() => {
-    const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by, premium) VALUES (?,?,?,?,?,?,?)')
-      .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null, premium ? 1 : 0);
+    const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by, premium, starts_at, notified) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null, premium ? 1 : 0, startsAt ? startsAt.toISOString() : null, startsAt ? 0 : 1);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
     db.prepare('INSERT INTO results (post_id, kind, title, date) VALUES (?,?,?,?)').run(id, kind, String(title || '').trim().slice(0, 80), date);
     return Number(id);
   })();
+}
+
+// Several days at once: [{ date, title, entries }]. All are saved, or none.
+function createMany(days, by) {
+  if (!Array.isArray(days) || !days.length) throw Object.assign(new Error('Add codes for at least one day'), { status: 400 });
+  if (days.length > 31) throw Object.assign(new Error('That is too many days at once (max 31)'), { status: 400 });
+  const seen = new Set();
+  for (const d of days) { const k = cleanDate(d.date); if (seen.has(k)) throw Object.assign(new Error('The same day is listed twice: ' + k), { status: 400 }); seen.add(k); }
+  return db.transaction(() => days.map(d => create({ kind: 'daily', title: d.title, entries: d.entries, date: d.date, by })))();
 }
 
 function update(id, { title, lastMatchAt, entries, premium }) {
@@ -115,14 +135,16 @@ function cleanup() {
 
 // Active posts with their per-bookmaker entries, newest first. Without an active pass they come back LOCKED (no codes,
 // links or images, only which bookmakers are covered).
-function active({ premium = true } = {}) {
+function active({ premium = true, scheduled = false } = {}) {
   const now = new Date().toISOString();
-  return db.prepare('SELECT * FROM posts WHERE expires_at > ? ORDER BY id DESC').all(now).map(p => {
+  const rows = scheduled ? db.prepare('SELECT * FROM posts WHERE expires_at > ? ORDER BY date DESC, id DESC').all(now)
+    : db.prepare('SELECT * FROM posts WHERE expires_at > ? AND (starts_at IS NULL OR starts_at <= ?) ORDER BY id DESC').all(now, now);
+  return rows.map(p => {
     const rows = db.prepare('SELECT platform, code, link, image_id FROM post_entries WHERE post_id = ?').all(p.id);
     const locked = !premium; // every code needs an active weekly pass
     return {
       id: p.id, kind: p.kind, title: p.title, date: p.date, lastMatchAt: p.last_match_at, expiresAt: p.expires_at, createdAt: p.created_at,
-      premium: false, locked,
+      premium: false, locked, startsAt: p.starts_at, scheduled: !!(p.starts_at && p.starts_at > now),
       books: rows.map(e => e.platform),
       entries: locked ? {} : Object.fromEntries(rows.map(e => [e.platform, { code: e.code, link: e.link, imageId: e.image_id }])),
     };
@@ -132,6 +154,14 @@ function active({ premium = true } = {}) {
 // Is this image part of a premium post?
 const imageIsPremium = () => true; // every slip image is for subscribers
 
+// Scheduled posts that have just gone live and have not been announced yet (marks them announced).
+function takeDue() {
+  const now = new Date().toISOString();
+  const ids = db.prepare('SELECT id FROM posts WHERE notified = 0 AND starts_at <= ? AND expires_at > ?').all(now, now).map(r => r.id);
+  db.prepare('UPDATE posts SET notified = 1 WHERE notified = 0 AND starts_at <= ?').run(now);
+  return active().filter(p => ids.includes(p.id));
+}
+
 const image = id => db.prepare('SELECT mime, data FROM post_images WHERE id = ?').get(id) || null;
 
-module.exports = { zonedInstant, addDays, create, update, remove, cleanup, active, image, imageIsPremium, localDate };
+module.exports = { zonedInstant, addDays, create, createMany, takeDue, update, remove, cleanup, active, image, imageIsPremium, localDate };

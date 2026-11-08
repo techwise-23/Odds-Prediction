@@ -172,3 +172,17 @@ body.admin-page .subnav { top: calc(62px + env(safe-area-inset-top)); }
 .res-btn.on.lost { background: #dc2626; border-color: #dc2626; color: #fff; }
 .res-btn.on.void { background: #64748b; border-color: #64748b; color: #fff; }
 .res-btn.on.pending { background: #F2B705; border-color: #F2B705; color: #2a1b00; }
+
+.bulk-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; margin: 8px 0 12px; }
+.bulk-controls .add { grid-column: 1 / -1; }
+.bulk-day { border: 1px solid #3a4a7a; border-radius: 12px; padding: 10px 12px 12px; margin: 0 0 10px; display: grid; gap: 8px; }
+.bulk-day legend { font-weight: 800; padding: 0 6px; color: #F2B705; }
+.bulk-row { display: grid; grid-template-columns: 84px 1fr 1fr; gap: 6px; align-items: center; }
+.bulk-row span { font-size: .8rem; font-weight: 700; opacity: .85; }
+@media (max-width: 460px) { .bulk-row { grid-template-columns: 1fr 1fr; } .bulk-row span { grid-column: 1 / -1; } }
+.sched-tag { color: #F2B705; }
+.badge.free { background: #14532d; color: #bbf7d0; }
+.free-pick select { padding: 8px 10px; border-radius: 99px; border: 1.5px solid #3a4a7a; background: transparent; color: inherit; font: inherit; font-size: .85rem; }
+.bulk-day, .bulk-controls { min-width: 0; }
+.bulk-day input, .bulk-controls input { width: 100%; min-width: 0; box-sizing: border-box; }
+.bulk-row > * { min-width: 0; }

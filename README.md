@@ -171,3 +171,10 @@ Every posted code gets a result row that stays after the post expires. In the ad
 ### Referrals
 
 Every user can pick their own referral code (a name, a number, 3-20 letters, numbers, `-` or `_`) from **Refer & Earn** on the home screen, and share it as a link (`/?ref=CODE`) or by typing it in the optional referral box at signup. When **3** people they referred have each paid for a **weekly or monthly** pass (daily passes do not count, and each person counts once), the referrer gets **90 days** of every code free, added after any pass they already have. It repeats for each further 3. Change with `REFERRAL_TARGET` and `REFERRAL_REWARD_DAYS` on the backend.
+
+
+### Admin: free access, blocking users, scheduling days
+
+- **Free access:** Admin -> Users -> *Free access...* on a user adds 7, 30, 90 or 365 days of every code (after any pass they already have), or removes their access.
+- **Block / delete:** the same row has **Block** (logs them out at once and stops login until you unblock) and **Delete** (removes the account). Admins must lose admin access before they can be blocked.
+- **Schedule codes:** on the Codes tab, *Goes live on* sets a later day for one post, and *Add several days at once* lets you fill in up to 14 days in one go. A day's codes go live at midnight (app time zone) and are removed at 12:00 noon the next day. Telegram alerts for a scheduled day are sent when it goes live.

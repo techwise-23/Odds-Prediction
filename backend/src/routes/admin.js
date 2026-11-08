@@ -72,14 +72,23 @@ router.put('/tickets/:id/codes', adminAuth, (req, res) => {
 // ---------- booking-code posts ----------
 const posts = require('../posts');
 const postErr = (res, e) => res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not save the post' });
-router.get('/posts', adminAuth, (req, res) => { posts.cleanup(); res.json({ posts: posts.active(), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), storage: { persistent: config.persistentStorage } }); });
+router.get('/posts', adminAuth, (req, res) => { posts.cleanup(); res.json({ posts: posts.active({ scheduled: true }), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), storage: { persistent: config.persistentStorage } }); });
 router.post('/posts', adminAuth, (req, res) => {
   try {
-    const id = posts.create({ kind: req.body.kind, title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, by: displayPhone(req.user.phone) });
+    const id = posts.create({ kind: req.body.kind, title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, date: req.body.date, by: displayPhone(req.user.phone) });
     settings.log(displayPhone(req.user.phone), `Posted ${req.body.kind === 'long' ? 'long bet' : "today's"} booking codes`);
-    const post = posts.active().find(p => p.id === id);
-    notify.postAdded(post).catch(e => console.error('notify:', e.message));
+    const post = posts.active().find(p => p.id === id); // a future day's post is announced when it goes live
+    if (post) notify.postAdded(post).catch(e => console.error('notify:', e.message));
     res.json({ ok: true, id });
+  } catch (e) { postErr(res, e); }
+});
+// Several days of codes at once (each day: { date, title, entries }).
+router.post('/posts/bulk', adminAuth, (req, res) => {
+  try {
+    const ids = posts.createMany(req.body.days, displayPhone(req.user.phone));
+    settings.log(displayPhone(req.user.phone), `Scheduled booking codes for ${ids.length} day${ids.length === 1 ? '' : 's'}`);
+    for (const p of posts.active().filter(p => ids.includes(p.id))) notify.postAdded(p).catch(e => console.error('notify:', e.message));
+    res.json({ ok: true, count: ids.length });
   } catch (e) { postErr(res, e); }
 });
 router.put('/posts/:id', adminAuth, (req, res) => {
@@ -158,9 +167,9 @@ router.get('/overview', adminAuth, (req, res) => {
 });
 
 router.get('/users', adminAuth, (req, res) => {
-  res.json({ users: db.prepare(`SELECT id, phone, is_admin, platform, created_at, telegram_chat_id IS NOT NULL AS telegram,
+  res.json({ users: db.prepare(`SELECT id, phone, is_admin, blocked, premium_until, platform, created_at, telegram_chat_id IS NOT NULL AS telegram,
       (SELECT COUNT(*) FROM user_picks p WHERE p.user_id = users.id) AS picks
-    FROM users ORDER BY id DESC LIMIT 500`).all().map(u => ({ ...u, name: displayPhone(u.phone), is_admin: !!u.is_admin, telegram: !!u.telegram })) });
+    FROM users ORDER BY id DESC LIMIT 500`).all().map(u => ({ ...u, name: displayPhone(u.phone), is_admin: !!u.is_admin, blocked: !!u.blocked, premium_until: u.premium_until && new Date(u.premium_until) > new Date() ? u.premium_until : null, telegram: !!u.telegram })) });
 });
 router.put('/users/:id/admin', adminAuth, (req, res) => {
   const id = Number(req.params.id);
@@ -244,9 +253,37 @@ router.delete('/users/:id', adminAuth, (req, res) => {
   if (id === req.user.id) return res.status(400).json({ error: "You can't delete your own account" });
   const u = db.prepare('SELECT phone FROM users WHERE id = ?').get(id);
   if (!u) return res.status(404).json({ error: 'User not found' });
-  db.prepare('DELETE FROM users WHERE id = ?').run(id); // saved picks and alert history go with it
+  db.prepare('UPDATE users SET referred_by = NULL WHERE referred_by = ?').run(id);
+  db.prepare('DELETE FROM users WHERE id = ?').run(id); // saved picks, payments and alert history go with it
   settings.log(displayPhone(req.user.phone), 'Deleted a user', displayPhone(u.phone));
   res.json({ ok: true });
+});
+
+// Block or unblock an account (a blocked user is logged out at once and cannot log in).
+router.put('/users/:id/block', adminAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (id === req.user.id) return res.status(400).json({ error: "You can't block your own account" });
+  const u = db.prepare('SELECT phone, is_admin FROM users WHERE id = ?').get(id);
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  if (u.is_admin) return res.status(400).json({ error: 'Remove their admin access first, then block them' });
+  db.prepare('UPDATE users SET blocked = ? WHERE id = ?').run(req.body.blocked ? 1 : 0, id);
+  settings.log(displayPhone(req.user.phone), req.body.blocked ? 'Blocked a user' : 'Unblocked a user', displayPhone(u.phone));
+  res.json({ ok: true });
+});
+// Free access for chosen people: days > 0 adds that many days (after any pass they already have); days = 0 ends their access now.
+router.put('/users/:id/access', adminAuth, (req, res) => {
+  const id = Number(req.params.id), days = Math.floor(Number(req.body.days));
+  if (!Number.isFinite(days) || days < 0 || days > 3650) return res.status(400).json({ error: 'Enter 0 to remove access, or 1 to 3650 days' });
+  const u = db.prepare('SELECT phone, premium_until FROM users WHERE id = ?').get(id);
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  let until = null;
+  if (days > 0) {
+    const base = u.premium_until && new Date(u.premium_until) > new Date() ? new Date(u.premium_until) : new Date();
+    until = new Date(base.getTime() + days * 86400000).toISOString();
+  }
+  db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run(until, id);
+  settings.log(displayPhone(req.user.phone), days ? `Gave ${days} days of free access` : 'Removed free access', displayPhone(u.phone));
+  res.json({ ok: true, until });
 });
 
 // ---------- tickets: remove one (it is rebuilt on the next refresh while it is still listed in Settings) ----------

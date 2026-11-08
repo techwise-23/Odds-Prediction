@@ -65,7 +65,68 @@ function sweepRings(root) {
 
 // ---------- admin: booking codes ----------
 // The admin books the games on each betting app and posts the code here (typed, as a screenshot with the code as caption, or as a link).
-const post = { editing: null, kind: 'daily', imgs: {}, existing: null };
+const post = { editing: null, kind: 'daily', imgs: {}, existing: null, date: '' };
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+const addDaysStr = (d, n) => new Date(Date.parse(d + 'T12:00:00') + n * 86400000).toLocaleDateString('en-CA');
+const dayName = d => new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' });
+
+// ----- several days at once -----
+const bulk = { start: '', n: 7, built: false, vals: {} };
+function bulkHtml() {
+  if (!bulk.start) bulk.start = todayStr();
+  const days = bulk.built ? Array.from({ length: bulk.n }, (_, i) => addDaysStr(bulk.start, i)) : [];
+  const v = k => esc(bulk.vals[k] || '');
+  return `<form class="code-card" id="bulk-form" novalidate>
+    <div class="code-card-head"><h3>Add several days at once</h3></div>
+    <p class="muted-inline">Choose a start day and how many days, then fill in each day's codes. Days you leave empty are skipped. Each day's codes go live at midnight on that day and are removed at 12:00 noon the next day.</p>
+    <div class="bulk-controls">
+      <label class="fld">Starts on<input name="start" type="date" min="${todayStr()}" value="${esc(bulk.start)}"></label>
+      <label class="fld">Number of days<input name="n" type="number" min="1" max="14" value="${bulk.n}" inputmode="numeric"></label>
+      <button type="button" class="add" data-bulk-build>${bulk.built ? 'Update days' : 'Create day forms'}</button>
+    </div>
+    ${days.map(d => `<fieldset class="bulk-day"><legend>${esc(dayName(d))}</legend>
+      <input name="${d}|title" placeholder="Title (optional)" maxlength="80" autocomplete="off" value="${v(d + '|title')}">
+      ${state.platforms.map(p => `<div class="bulk-row"><span>${esc(p.name)}</span>
+        <input name="${d}|code-${esc(p.key)}" placeholder="Booking code" maxlength="60" autocomplete="off" value="${v(d + '|code-' + p.key)}">
+        <input name="${d}|link-${esc(p.key)}" type="url" placeholder="…or link" autocomplete="off" value="${v(d + '|link-' + p.key)}"></div>`).join('')}
+    </fieldset>`).join('')}
+    ${bulk.built ? '<p class="form-error" role="alert"></p><div class="code-save"><span></span><button class="add solid" type="submit">Post all days</button></div>' : ''}
+  </form>`;
+}
+document.addEventListener('input', e => {
+  const f = e.target.closest('#bulk-form'); if (!f || !e.target.name) return;
+  if (e.target.name.includes('|')) bulk.vals[e.target.name] = e.target.value;
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-bulk-build]')) return;
+  const f = $('#bulk-form'), n = Math.floor(Number(f.elements.n.value)), start = f.elements.start.value;
+  if (!start || start < todayStr()) return toast('Pick a start day from today onwards');
+  if (!(n >= 1 && n <= 14)) return toast('Choose 1 to 14 days');
+  Object.assign(bulk, { start, n, built: true }); redrawBulk();
+});
+function redrawBulk() { const f = $('#bulk-form'); const h = document.createElement('div'); h.innerHTML = bulkHtml(); if (f) f.replaceWith(h.firstElementChild); }
+document.addEventListener('submit', async e => {
+  const form = e.target.closest('#bulk-form'); if (!form) return;
+  e.preventDefault();
+  const err = form.querySelector('.form-error'), btn = form.querySelector('[type=submit]'); err.textContent = '';
+  const days = [];
+  for (let i = 0; i < bulk.n; i++) {
+    const d = addDaysStr(bulk.start, i), entries = {};
+    for (const p of state.platforms) {
+      const code = (bulk.vals[`${d}|code-${p.key}`] || '').trim(), link = (bulk.vals[`${d}|link-${p.key}`] || '').trim();
+      if (code || link) entries[p.key] = { code, link };
+    }
+    if (Object.keys(entries).length) days.push({ date: d, title: bulk.vals[d + '|title'] || '', entries });
+  }
+  if (!days.length) { err.textContent = 'Fill in at least one day.'; return; }
+  btn.disabled = true;
+  try {
+    const r = await api('/api/admin/posts/bulk', { method: 'POST', body: { days } });
+    toast(`Scheduled ${r.count} day${r.count === 1 ? '' : 's'} of codes.`);
+    Object.assign(bulk, { built: false, vals: {} }); loadCodes();
+  } catch (x) { err.textContent = x.message; }
+  btn.disabled = false;
+});
 const fmtWhen = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const toLocalInput = iso => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -102,7 +163,9 @@ function composeHtml() {
     <label class="fld">Title <small>(optional, e.g. "Safe 5 odds")</small><input name="title" maxlength="80" value="${esc(ex ? ex.title : '')}" autocomplete="off"></label>
     ${long ? `<label class="fld">Kickoff of the LAST match <small>(the post disappears 3 hours after this)</small>
       <input name="lastMatch" type="datetime-local" value="${ex && ex.lastMatchAt ? toLocalInput(ex.lastMatchAt) : ''}"></label>`
-      : `<p class="muted-inline">Today's codes are removed automatically at 12:00 noon the next day.</p>`}
+      : `${post.editing ? '' : `<label class="fld">Goes live on <small>(pick a later day to schedule it)</small>
+        <input name="date" type="date" min="${todayStr()}" max="${addDaysStr(todayStr(), 60)}" value="${esc(post.date || todayStr())}"></label>`}
+      <p class="muted-inline">Each day's codes go live at midnight on that day and are removed automatically at 12:00 noon the next day.</p>`}
     <p class="muted-inline">For each betting company add a <b>code</b>, a <b>link</b>, or an <b>image</b> (the code you type becomes its caption). Leave a company empty if you don't cover it.</p>
     <div class="post-books">${state.platforms.map(p => {
       const e = ex && ex.entries[p.key], img = post.imgs[p.key], keep = e && e.imageId && img !== null && !(img === null);
@@ -124,7 +187,7 @@ async function loadCodes() {
   state.platforms = r.platforms;
   const list = r.posts.length ? r.posts.map(p => {
     const names = state.platforms.filter(b => p.entries[b.key]).map(b => esc(b.name)).join(', ');
-    const when = p.kind === 'long' ? `until the last match, ${esc(fmtWhen(p.lastMatchAt))}` : `removed ${esc(fmtWhen(p.expiresAt))}`;
+    const when = (p.scheduled ? `<b class="sched-tag">Goes live ${esc(fmtWhen(p.startsAt))}</b> · ` : '') + (p.kind === 'long' ? `until the last match, ${esc(fmtWhen(p.lastMatchAt))}` : `removed ${esc(fmtWhen(p.expiresAt))}`);
     return `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(p.title || (p.kind === 'long' ? 'Long bet' : "Today's code"))}</h3>
       <span>${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
       <div class="adm-user-btns"><button class="add" data-post-edit="${p.id}">Edit</button><button class="add danger" data-post-del="${p.id}">Delete</button></div></article>`;
@@ -150,12 +213,12 @@ async function loadCodes() {
   } catch { /* results are optional */ }
   const warn = r.storage && !r.storage.persistent ? `<div class="storage-warn" role="alert"><b>Accounts will be erased on the next deploy.</b>
     The database is not on a Volume. In Railway open the backend service, go to Volumes, add one with mount path <code>/data</code>, then redeploy. Users who sign up before that will be lost.</div>` : '';
-  $('#codes').innerHTML = warn + composeHtml() + '<h2 class="section-head">Live posts</h2>' + list + resHtml + money;
+  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
 function redrawCompose() {
-  const f = $('#post-form'), keep = f ? Object.fromEntries([...new FormData(f)].filter(([k]) => /^(title|lastMatch|code-|link-)/.test(k))) : {};
+  const f = $('#post-form'), keep = f ? Object.fromEntries([...new FormData(f)].filter(([k]) => /^(title|lastMatch|date|code-|link-)/.test(k))) : {};
   const holder = document.createElement('div'); holder.innerHTML = composeHtml();
   if (f) f.replaceWith(holder.firstElementChild);
   const nf = $('#post-form');
@@ -206,6 +269,7 @@ document.addEventListener('submit', async e => {
     if (code || link || entry.image || entry.keepImage) entries[p.key] = entry;
   }
   const body = { kind: post.kind, title: form.elements.title.value, entries };
+  if (post.kind === 'daily' && !post.editing && form.elements.date) body.date = form.elements.date.value;
   if (post.kind === 'long') {
     const v = form.elements.lastMatch.value;
     if (!v) { err.textContent = 'Enter the kickoff time of the last match.'; return; }
@@ -215,7 +279,7 @@ document.addEventListener('submit', async e => {
   try {
     await api(post.editing ? '/api/admin/posts/' + post.editing : '/api/admin/posts', { method: post.editing ? 'PUT' : 'POST', body });
     toast(post.editing ? 'Saved' : 'Posted. Users can see it now.');
-    Object.assign(post, { editing: null, existing: null, imgs: {} }); loadCodes();
+    Object.assign(post, { editing: null, existing: null, imgs: {}, date: '' }); loadCodes();
   } catch (x) { err.textContent = x.message; }
   btn.disabled = false;
 });
@@ -347,13 +411,14 @@ function renderUsers() {
     (list.length ? list.map(u => `<article class="adm-user">
       <div class="adm-avatar">${esc(String(u.phone || '?').slice(-2))}</div>
       <div class="adm-user-main">
-        <b>${esc(u.name)}</b>${u.is_admin ? ' <span class="badge live">Admin</span>' : ''}
+         <b>${esc(u.name)}</b>${u.is_admin ? ' <span class="badge live">Admin</span>' : ''}${u.blocked ? ' <span class="badge lost">Blocked</span>' : ''}${u.premium_until ? ` <span class="badge free">Access until ${esc(new Date(u.premium_until).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }))}</span>` : ''}
         
         <div class="meta"><span>${esc((state.platforms.find(p => p.key === u.platform) || {}).name || u.platform)}</span>
           <span>${u.picks} saved pick${u.picks === 1 ? '' : 's'}</span>${u.telegram ? '<span>Telegram ✓</span>' : ''}${u.created_at ? `<span>Joined ${ago(u.created_at)}</span>` : ''}</div>
       </div>
       ${u.id === state.user.id ? '<span class="muted-inline">You</span>'
-        : `<div class="adm-user-btns"><button class="add" data-make-admin="${u.id}" data-to="${u.is_admin ? 0 : 1}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button><button class="add danger" data-del-user="${u.id}">Delete</button></div>`}
+        : `<div class="adm-user-btns"><span class="free-pick"><select data-free-days="${u.id}" aria-label="Free access for ${esc(u.name)}"><option value="">Free access…</option><option value="7">+7 days</option><option value="30">+30 days</option><option value="90">+90 days</option><option value="365">+1 year</option>${u.premium_until ? '<option value="0">Remove access</option>' : ''}</select></span>
+          ${u.is_admin ? '' : `<button class="add${u.blocked ? '' : ' danger'}" data-block-user="${u.id}" data-to="${u.blocked ? 0 : 1}">${u.blocked ? 'Unblock' : 'Block'}</button>`}<button class="add" data-make-admin="${u.id}" data-to="${u.is_admin ? 0 : 1}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button><button class="add danger" data-del-user="${u.id}">Delete</button></div>`}
     </article>`).join('') : empty(usersCache.length ? 'No users match your search.' : 'No users yet.', ''));
 }
 $('#adm-search').addEventListener('input', renderUsers);
@@ -363,6 +428,21 @@ document.addEventListener('click', async e => {
   const make = b.dataset.to === '1', u = usersCache.find(x => x.id === +b.dataset.makeAdmin);
   if (!confirm(make ? `Give ${u.name} admin access? They will be able to edit booking codes and see all users.` : `Remove admin access from ${u.name}?`)) return;
   try { await api(`/api/admin/users/${u.id}/admin`, { method: 'PUT', body: { isAdmin: make } }); toast(make ? 'Admin access given' : 'Admin access removed'); loadUsers(); }
+  catch (err) { toast(err.message); }
+});
+
+document.addEventListener('change', async e => {
+  const sel = e.target.closest('[data-free-days]'); if (!sel || sel.value === '') return;
+  const u = usersCache.find(x => x.id === +sel.dataset.freeDays), days = +sel.value;
+  if (!confirm(days ? `Give ${u.name} ${days} days of free access to every code?` : `Remove ${u.name}'s access now?`)) { sel.value = ''; return; }
+  try { await api(`/api/admin/users/${u.id}/access`, { method: 'PUT', body: { days } }); toast(days ? 'Free access given' : 'Access removed'); loadUsers(); }
+  catch (err) { toast(err.message); sel.value = ''; }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-block-user]'); if (!b) return;
+  const block = b.dataset.to === '1', u = usersCache.find(x => x.id === +b.dataset.blockUser);
+  if (!confirm(block ? `Block ${u.name}? They will be logged out and cannot log in until you unblock them.` : `Unblock ${u.name}?`)) return;
+  try { await api(`/api/admin/users/${u.id}/block`, { method: 'PUT', body: { blocked: block } }); toast(block ? 'User blocked' : 'User unblocked'); loadUsers(); }
   catch (err) { toast(err.message); }
 });
 

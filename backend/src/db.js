@@ -177,6 +177,14 @@ if (!postCols.includes('premium')) db.exec('ALTER TABLE posts ADD COLUMN premium
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_ref_code ON users (ref_code COLLATE NOCASE) WHERE ref_code IS NOT NULL');
   db.exec('CREATE INDEX IF NOT EXISTS users_referred_by ON users (referred_by)');
 }
+// Admin tools: blocked accounts, and posts that go live on a later day (starts_at) and are announced when they do (notified).
+{
+  const uc = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!uc.includes('blocked')) db.exec('ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0');
+  const pc = db.prepare('PRAGMA table_info(posts)').all().map(c => c.name);
+  if (!pc.includes('starts_at')) db.exec('ALTER TABLE posts ADD COLUMN starts_at TEXT');
+  if (!pc.includes('notified')) db.exec('ALTER TABLE posts ADD COLUMN notified INTEGER NOT NULL DEFAULT 1');
+}
 db.exec(`CREATE TABLE IF NOT EXISTS payments (
   reference TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

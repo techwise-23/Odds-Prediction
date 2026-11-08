@@ -148,10 +148,12 @@ module.exports = {
 
   // Bookmakers users can pick. Admins paste one booking code per bookmaker on each ticket.
   // The url is where the "Open" button sends users; override with e.g. URL_MSPORT in .env.
+  // loadUrl (optional) is a link that loads a booking code straight into the bookmaker; {code} is replaced by the code.
+  // Only SportyBet's share link is set up. Others can be added with e.g. LOAD_URL_MSPORT=https://.../?shareCode={code}.
   platforms: [
-    { key: 'sportybet', name: 'SportyBet', url: env.URL_SPORTYBET || env.SPORTYBET_URL || 'https://www.sportybet.com/gh/' },
-    { key: 'msport', name: 'MSport', url: env.URL_MSPORT || 'https://www.msport.com/gh/' },
-    { key: 'footballcom', name: 'Football.com', url: env.URL_FOOTBALLCOM || 'https://www.football.com/gh/' },
-    { key: 'betway', name: 'Betway', url: env.URL_BETWAY || 'https://www.betway.com.gh/' },
+    { key: 'sportybet', name: 'SportyBet', url: env.URL_SPORTYBET || env.SPORTYBET_URL || 'https://www.sportybet.com/gh/', loadUrl: env.LOAD_URL_SPORTYBET || 'https://www.sportybet.com/gh/?shareCode={code}' },
+    { key: 'msport', name: 'MSport', url: env.URL_MSPORT || 'https://www.msport.com/gh/', loadUrl: env.LOAD_URL_MSPORT || '' },
+    { key: 'footballcom', name: 'Football.com', url: env.URL_FOOTBALLCOM || 'https://www.football.com/gh/', loadUrl: env.LOAD_URL_FOOTBALLCOM || '' },
+    { key: 'betway', name: 'Betway', url: env.URL_BETWAY || 'https://www.betway.com.gh/', loadUrl: env.LOAD_URL_BETWAY || '' },
   ],
 };

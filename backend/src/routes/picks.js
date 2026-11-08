@@ -12,7 +12,7 @@ const router = express.Router();
 
 // Booking codes posted by the admin. Expired posts are never returned.
 router.get('/posts', auth, (req, res) => {
-  res.json({ posts: posts.active({ premium: premium.isActive(req.user) }), premium: { ...premium.status(req.user), ...premium.offer() }, platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), now: new Date().toISOString() });
+  res.json({ posts: posts.active({ premium: premium.isActive(req.user) }), premium: { ...premium.status(req.user), ...premium.offer() }, platforms: config.platforms.map(({ key, name, url, loadUrl }) => ({ key, name, url, loadUrl: loadUrl || '' })), now: new Date().toISOString() });
 });
 // Screenshot of a booking slip. Needs a signed-in user (or admin); the page fetches it with its token and shows it.
 router.get('/post-images/:id', authAny, (req, res) => {

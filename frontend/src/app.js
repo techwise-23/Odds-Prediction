@@ -423,6 +423,7 @@ function openPost(id, platform) {
       ${e.code ? `<div class="code-box"><div><span>Booking code</span><b class="code">${esc(e.code)}</b></div>
         <div class="code-actions"><button class="add solid" data-copy="${esc(e.code)}">Copy code</button></div></div>` : ''}
       ${e.imageId ? `<figure class="slip-img"><img alt="${esc(b.name)} betslip" data-img="${esc(e.imageId)}"><figcaption>${e.code ? esc(e.code) : ''}</figcaption></figure>` : ''}
+      ${loadHref(b, e.code) ? `<a class="btn-primary slip-link" data-load="${esc(e.code)}" href="${esc(loadHref(b, e.code))}" target="_blank" rel="noopener">Load code in ${esc(b.name)}</a>` : ''}
       ${e.link ? `<a class="btn-primary slip-link" href="${esc(e.link)}" target="_blank" rel="noopener noreferrer">Open the slip on ${esc(b.name)}</a>` : ''}
       ${b.url ? `<a class="add" href="${esc(b.url)}" target="_blank" rel="noopener">Open ${esc(b.name)}</a>` : ''}
       <p class="fineprint">On ${esc(b.name)}, open the betslip, enter the booking code and load it. Odds may differ slightly. 18+ only. Bet responsibly.</p>`;
@@ -430,6 +431,12 @@ function openPost(id, platform) {
     if (img) loadImage(img);
   }
   if (!postDialog.open) postDialog.showModal();
+}
+
+// A bookmaker's share link that loads the code straight onto the betslip (only when set up and the code looks like a plain code).
+function loadHref(b, code) {
+  const c = String(code || '').trim();
+  return b.loadUrl && /^[A-Za-z0-9]{3,20}$/.test(c) ? b.loadUrl.replace('{code}', encodeURIComponent(c)) : '';
 }
 
 // Images need the login token, so fetch them and show them from memory.
@@ -442,6 +449,8 @@ async function loadImage(img) {
 }
 
 document.addEventListener('click', async e => {
+  const ld = e.target.closest('[data-load]');
+  if (ld) { try { navigator.clipboard.writeText(ld.dataset.load); } catch { /* the code is also shown on screen */ } toast('Code copied. Opening the betslip...'); return; }
   if (e.target.closest('[data-unlock]')) return openPremium();
   const post = e.target.closest('[data-post]'), book = e.target.closest('[data-book]'), back = e.target.closest('[data-back]'), copy = e.target.closest('[data-copy]');
   if (post) return openPost(Number(post.dataset.post));

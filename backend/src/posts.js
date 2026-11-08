@@ -154,6 +154,14 @@ function active({ premium = true, scheduled = false } = {}) {
 // Is this image part of a premium post?
 const imageIsPremium = () => true; // every slip image is for subscribers
 
+// Re-applies the current expiry rule to daily posts already saved (e.g. after changing POST_EXPIRE_HOUR).
+function resync() {
+  for (const p of db.prepare("SELECT id, date, expires_at FROM posts WHERE kind = 'daily'").all()) {
+    const e = expiryFor('daily', p.date).toISOString();
+    if (e !== p.expires_at) db.prepare('UPDATE posts SET expires_at = ? WHERE id = ?').run(e, p.id);
+  }
+}
+
 // Scheduled posts that have just gone live and have not been announced yet (marks them announced).
 function takeDue() {
   const now = new Date().toISOString();
@@ -164,4 +172,4 @@ function takeDue() {
 
 const image = id => db.prepare('SELECT mime, data FROM post_images WHERE id = ?').get(id) || null;
 
-module.exports = { zonedInstant, addDays, create, createMany, takeDue, update, remove, cleanup, active, image, imageIsPremium, localDate };
+module.exports = { resync, zonedInstant, addDays, create, createMany, takeDue, update, remove, cleanup, active, image, imageIsPremium, localDate };

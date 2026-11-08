@@ -121,7 +121,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS notification_log (
 )`);
 
 // Booking-code posts written by the admin (no auto-generated tickets).
-//  kind 'daily': shown for one day, removed at POST_EXPIRE_HOUR (default 12:00) the next day.
+//  kind 'daily': shown for one day, removed at POST_EXPIRE_HOUR (default 00:00, i.e. midnight) the next day, when the new day's codes take over.
 //  kind 'long' : kept until the last match has been played (expires_at = last kickoff + a few hours).
 db.exec(`CREATE TABLE IF NOT EXISTS posts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

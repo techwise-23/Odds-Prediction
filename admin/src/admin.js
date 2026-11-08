@@ -78,7 +78,7 @@ function bulkHtml() {
   const v = k => esc(bulk.vals[k] || '');
   return `<form class="code-card" id="bulk-form" novalidate>
     <div class="code-card-head"><h3>Add several days at once</h3></div>
-    <p class="muted-inline">Choose a start day and how many days, then fill in each day's codes. Days you leave empty are skipped. Each day's codes go live at midnight on that day and are removed at 12:00 noon the next day.</p>
+    <p class="muted-inline">Choose a start day and how many days, then fill in each day's codes. Days you leave empty are skipped. Each day's codes go live at midnight on that day and are replaced by the next day's codes at midnight.</p>
     <div class="bulk-controls">
       <label class="fld">Starts on<input name="start" type="date" min="${todayStr()}" value="${esc(bulk.start)}"></label>
       <label class="fld">Number of days<input name="n" type="number" min="1" max="14" value="${bulk.n}" inputmode="numeric"></label>
@@ -165,7 +165,7 @@ function composeHtml() {
       <input name="lastMatch" type="datetime-local" value="${ex && ex.lastMatchAt ? toLocalInput(ex.lastMatchAt) : ''}"></label>`
       : `${post.editing ? '' : `<label class="fld">Goes live on <small>(pick a later day to schedule it)</small>
         <input name="date" type="date" min="${todayStr()}" max="${addDaysStr(todayStr(), 60)}" value="${esc(post.date || todayStr())}"></label>`}
-      <p class="muted-inline">Each day's codes go live at midnight on that day and are removed automatically at 12:00 noon the next day.</p>`}
+      <p class="muted-inline">Each day's codes go live at midnight on that day and are replaced automatically by the next day's codes at midnight.</p>`}
     <p class="muted-inline">For each betting company add a <b>code</b>, a <b>link</b>, or an <b>image</b> (the code you type becomes its caption). Leave a company empty if you don't cover it.</p>
     <div class="post-books">${state.platforms.map(p => {
       const e = ex && ex.entries[p.key], img = post.imgs[p.key], keep = e && e.imageId && img !== null && !(img === null);

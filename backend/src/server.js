@@ -32,6 +32,7 @@ const posts = require('./posts');
 // Expired booking-code posts (daily ones after the cut-off hour, long bets after the last match) are deleted every few minutes.
 const sweep = () => { try { const n = posts.cleanup(); if (n) console.log(`Removed ${n} expired post(s)`); } catch (e) { console.error('post cleanup:', e.message); } };
 const announce = () => { try { for (const p of posts.takeDue()) require('./notify').postAdded(p).catch(e => console.error('notify:', e.message)); } catch (e) { console.error('announce:', e.message); } };
+try { posts.resync(); } catch (e) { console.error('post resync:', e.message); }
 sweep(); setInterval(() => { sweep(); announce(); }, 5 * 60000).unref();
 
 // ---------- schedule ----------

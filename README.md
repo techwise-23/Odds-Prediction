@@ -25,7 +25,7 @@ to the admin, and the admin API refuses public-app sessions.
 The system no longer generates tickets or codes. **You** book the games on each betting app and post the code in the admin console
 (Booking codes tab). There are two kinds of post:
 
-- **Today's booking code**: removed automatically at 12:00 noon the next day (change with `POST_EXPIRE_HOUR`, default `12`, in `TZ_NAME` time).
+- **Today's booking code**: removed automatically at midnight, when the next day's codes take over (`POST_EXPIRE_HOUR`, default `0`, in `TZ_NAME` time; set it to `12` to keep codes until noon the next day).
 - **Long bet booking code**: you enter the kickoff of the **last match**; the post stays until 3 hours after that (`LONG_BET_GRACE_HOURS`).
 
 For each betting company you can add a **code**, a **link**, or an **image** (the code you type becomes its caption). Users tap a post,
@@ -177,4 +177,4 @@ Every user can pick their own referral code (a name, a number, 3-20 letters, num
 
 - **Free access:** Admin -> Users -> *Free access...* on a user adds 7, 30, 90 or 365 days of every code (after any pass they already have), or removes their access.
 - **Block / delete:** the same row has **Block** (logs them out at once and stops login until you unblock) and **Delete** (removes the account). Admins must lose admin access before they can be blocked.
-- **Schedule codes:** on the Codes tab, *Goes live on* sets a later day for one post, and *Add several days at once* lets you fill in up to 14 days in one go. A day's codes go live at midnight (app time zone) and are removed at 12:00 noon the next day. Telegram alerts for a scheduled day are sent when it goes live.
+- **Schedule codes:** on the Codes tab, *Goes live on* sets a later day for one post, and *Add several days at once* lets you fill in up to 14 days in one go. A day's codes go live at midnight (app time zone) and are replaced at midnight by the next day's codes. Telegram alerts for a scheduled day are sent when it goes live.

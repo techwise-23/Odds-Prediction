@@ -77,6 +77,7 @@ const grant = db.transaction((reference, channel) => {
     const u = db.prepare('SELECT premium_until FROM users WHERE id = ?').get(pay.user_id);
     const end = new Date(planEnd(pay.plan).getTime() - 1000), cur = u && u.premium_until ? new Date(u.premium_until) : null;
     db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run((cur && cur > end ? cur : end).toISOString(), pay.user_id);
+    require('./referrals').onPurchase(pay.user_id, pay.plan); // may earn the person who referred them free access
   }
   return { ...pay, newlyPaid: !!done };
 });

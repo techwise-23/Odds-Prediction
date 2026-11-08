@@ -970,3 +970,23 @@ html { background: #EAF1FF; }
 .rl-main { display: grid; min-width: 0; } .rl-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .rl-main small { color: #5b6a96; }
 .res-badge { flex: none; padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: .78rem; background: #E8EDF9; color: #3b4a78; }
 .res-badge.won { background: #DDF5E4; color: #0F7A33; } .res-badge.lost { background: #FDE2E2; color: #B42318; } .res-badge.void { background: #E5E7EB; color: #4B5563; }
+
+/* Refer & earn */
+.ref-pad { padding: 4px 16px 16px; display: grid; gap: 10px; }
+.ref-line { margin: 0; color: #0B2466; line-height: 1.4; } .ref-line b { color: #0F7A33; }
+.ref-prog { display: flex; align-items: center; gap: 8px; }
+.ref-prog i { width: 34px; height: 34px; border-radius: 50%; border: 2.5px dashed #9DB4EE; background: #fff; display: inline-block; }
+.ref-prog i.on { border: 0; background: #16a34a; position: relative; } .ref-prog i.on::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800; }
+.ref-prog span { margin-left: 4px; font-family: var(--display); font-weight: 700; color: #0B2466; }
+.ref-prog.big { margin: 6px 0 14px; }
+.ref-sub { margin: 0; }
+.ref-form { display: grid; gap: 8px; margin: 4px 0 14px; }
+.ref-share { display: grid; gap: 10px; margin-bottom: 8px; }
+.ref-link { word-break: break-all; font-size: .9rem; letter-spacing: 0; }
+.ref-h { margin: 12px 0 6px; color: #0B2466; font-family: var(--display); }
+#ref-field[hidden] { display: none; }
+.ref-share a.btn-primary { display: block; text-align: center; text-decoration: none; }
+#refer-dialog .fld { display: grid; gap: 4px; margin: 0; font-weight: 600; font-size: .9rem; }
+#refer-dialog .fld small { font-weight: 400; color: var(--text-2); }
+#refer-dialog input { display: block; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 16px; font-weight: 400; background: #fff; color: var(--navy); }
+#refer-dialog input:focus { border-color: var(--blue); outline: none; }

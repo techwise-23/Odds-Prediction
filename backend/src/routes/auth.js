@@ -4,6 +4,7 @@ const config = require('../config');
 const { normalizePhone } = require('../phone');
 const db = require('../db');
 const telegram = require('../telegram');
+const referrals = require('../referrals');
 const { auth, limited, setUserSession, clearSession, USER_COOKIE, publicUser } = require('../middleware/auth');
 
 const router = express.Router();
@@ -20,8 +21,10 @@ router.post('/register', limited, (req, res) => {
   if (db.prepare('SELECT 1 FROM users WHERE phone = ?').get(phone)) return res.status(409).json({ error: 'That number already has an account. Tap Log in instead.' });
   // With ADMIN_PHONES set, only those numbers are admins; otherwise the very first account is.
   const isAdmin = config.adminPhones.includes(phone) || (!config.adminPhones.length && db.prepare('SELECT COUNT(*) c FROM users').get().c === 0);
-  const { lastInsertRowid } = db.prepare("INSERT INTO users (name, email, password_hash, phone, is_admin) VALUES ('', ?, '', ?, ?)")
-    .run(phone + '@phone.local', phone, isAdmin ? 1 : 0);
+  let referrer = null;
+  try { referrer = referrals.resolve(req.body && req.body.ref); } catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
+  const { lastInsertRowid } = db.prepare("INSERT INTO users (name, email, password_hash, phone, is_admin, referred_by) VALUES ('', ?, '', ?, ?, ?)")
+    .run(phone + '@phone.local', phone, isAdmin ? 1 : 0, referrer);
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(lastInsertRowid);
   const token = setSession(res, user);
   res.json({ user: publicUser(user), token });
@@ -44,6 +47,13 @@ router.put('/me/platform', auth, (req, res) => {
   res.json({ ok: true, platform });
 });
 
+
+// ---------- Referrals ----------
+router.get('/referrals', auth, (req, res) => res.json(referrals.summary(req.user.id)));
+router.put('/referrals/code', auth, (req, res) => {
+  try { referrals.setCode(req.user.id, req.body && req.body.code); res.json(referrals.summary(req.user.id)); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 
 // ---------- Telegram alerts ----------
 function telegramState(u) {

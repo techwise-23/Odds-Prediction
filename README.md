@@ -166,3 +166,8 @@ On a booking code, users get a **Load code in SportyBet** button that opens `htt
 ### Results center
 
 Every posted code gets a result row that stays after the post expires. In the admin console (Codes tab, **Results**) tap **Won**, **Lost** or **Void** once the games finish. Users see the 30-day win rate, winning run and the latest results on the home screen and under the **Results** tab. Codes themselves are never shown there.
+
+
+### Referrals
+
+Every user can pick their own referral code (a name, a number, 3-20 letters, numbers, `-` or `_`) from **Refer & Earn** on the home screen, and share it as a link (`/?ref=CODE`) or by typing it in the optional referral box at signup. When **3** people they referred have each paid for a **weekly or monthly** pass (daily passes do not count, and each person counts once), the referrer gets **90 days** of every code free, added after any pass they already have. It repeats for each further 3. Change with `REFERRAL_TARGET` and `REFERRAL_REWARD_DAYS` on the backend.

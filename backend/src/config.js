@@ -94,6 +94,8 @@ module.exports = {
   },
   // Passes unlock every booking code. Daily: until midnight tonight. Weekly: until the end of Sunday (Monday to Sunday week).
   // Monthly: 30 days from payment. Set a price to 0 to hide that plan.
+  // Referrals: when `target` people a user referred have each bought a qualifying pass, the user gets `rewardDays` of free access.
+  referral: { target: Number(env.REFERRAL_TARGET || 3), rewardDays: Number(env.REFERRAL_REWARD_DAYS || 90), plans: ['weekly', 'monthly'] },
   premiumPlans: [
     { key: 'daily', name: 'Daily pass', price: Number(env.PREMIUM_PRICE_DAILY ?? 15) },
     { key: 'weekly', name: 'Weekly pass', price: Number(env.PREMIUM_PRICE_WEEKLY ?? 50) },

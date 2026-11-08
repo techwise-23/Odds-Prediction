@@ -166,6 +166,17 @@ db.exec('INSERT INTO results (post_id, kind, title, date) SELECT id, kind, title
 if (!userCols.includes('premium_until')) db.exec('ALTER TABLE users ADD COLUMN premium_until TEXT');
 const postCols = db.prepare('PRAGMA table_info(posts)').all().map(c => c.name);
 if (!postCols.includes('premium')) db.exec('ALTER TABLE posts ADD COLUMN premium INTEGER NOT NULL DEFAULT 0');
+// Referrals: each user can pick a referral code; referred_by is who brought them in; ref_qualified_at is set when they first buy a
+// qualifying pass; referral_rewards counts free-access rewards already given to the referrer.
+{
+  const uc = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!uc.includes('ref_code')) db.exec('ALTER TABLE users ADD COLUMN ref_code TEXT');
+  if (!uc.includes('referred_by')) db.exec('ALTER TABLE users ADD COLUMN referred_by INTEGER');
+  if (!uc.includes('ref_qualified_at')) db.exec('ALTER TABLE users ADD COLUMN ref_qualified_at TEXT');
+  if (!uc.includes('referral_rewards')) db.exec('ALTER TABLE users ADD COLUMN referral_rewards INTEGER NOT NULL DEFAULT 0');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_ref_code ON users (ref_code COLLATE NOCASE) WHERE ref_code IS NOT NULL');
+  db.exec('CREATE INDEX IF NOT EXISTS users_referred_by ON users (referred_by)');
+}
 db.exec(`CREATE TABLE IF NOT EXISTS payments (
   reference TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

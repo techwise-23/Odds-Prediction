@@ -5,7 +5,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const state = { user: null, posts: [], platforms: [], open: null, results: null, premium: { active: false, until: null, enabled: false, plans: [], currency: 'GHS' } };
+const state = { user: null, posts: [], platforms: [], open: null, results: null, refer: null, premium: { active: false, until: null, enabled: false, plans: [], currency: 'GHS' } };
 
 // Session token kept in this browser as a fallback for browsers that block cross-site cookies (see the backend's auth.js).
 const TOKEN_KEY = 'oddsday_token';
@@ -51,6 +51,7 @@ function setAuthMode(mode) {
   $('#auth-title').textContent = reg ? 'Create your free account' : 'Welcome back';
   $('#auth-sub').textContent = reg ? 'Just your phone number. No password, no email.' : 'Enter your phone number to log in.';
   $('#auth-form [type=submit]').textContent = reg ? 'Sign up' : 'Log in';
+  $('#ref-field').hidden = !reg;
   $('#auth-alt-text').textContent = reg ? 'Already have an account?' : 'New to PawaOdds?';
   $('#auth-alt').textContent = reg ? 'Log in' : 'Sign up';
   $('.form-error').textContent = '';
@@ -65,11 +66,22 @@ $('#auth-form').addEventListener('submit', async e => {
   btn.disabled = true; $('.form-error').textContent = '';
   try {
     const body = { phone: f.get('phone') };
+    if (authMode === 'register') body.ref = String(f.get('ref') || '').trim();
     const { user } = await api(authMode === 'login' ? '/api/login' : '/api/register', { method: 'POST', body });
+    try { localStorage.removeItem('pawa_ref'); } catch { /* fine */ }
     state.user = user; await startApp();
   } catch (err) { $('.form-error').textContent = err.message; }
   btn.disabled = false;
 });
+
+// A link like https://pawaodds.com/?ref=KOFI fills in the referral box (and is remembered until signup).
+(function pickUpReferral() {
+  let ref = '';
+  try { ref = new URLSearchParams(location.search).get('ref') || ''; } catch { /* old browser */ }
+  ref = ref.trim().slice(0, 20);
+  try { if (ref) localStorage.setItem('pawa_ref', ref); else ref = localStorage.getItem('pawa_ref') || ''; } catch { /* storage blocked */ }
+  if (ref) $('#auth-form [name=ref]').value = ref;
+})();
 
 function showAuth() { $('#app-view').hidden = true; $('#auth-view').hidden = false; document.body.classList.remove('in-app'); }
 
@@ -150,6 +162,7 @@ async function loadPosts() {
   try { r = await api('/api/posts'); } catch (err) { $('#posts').innerHTML = `<div class="empty"><b>Could not load codes.</b><br>${esc(err.message)}</div>`; return; }
   state.posts = r.posts; state.platforms = r.platforms; state.premium = r.premium || state.premium;
   try { state.results = await api('/api/results'); } catch { /* the results panel just stays hidden */ }
+  try { state.refer = await api('/api/referrals'); } catch { /* the referral panel just stays hidden */ }
   renderPosts();
   if (resultsDialog.open) renderResults();
   if (state.open) { const p = state.posts.find(x => x.id === state.open); p ? openPost(p.id) : closeDialog(); }
@@ -289,6 +302,7 @@ function renderPosts() {
     <section class="sect long"><header><span class="sect-ico">${SI.bars}</span><h2>Long Bet Booking Code</h2></header>
       <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div></section>
     ${resultsPanel()}
+    ${referPanel()}
     ${vipBanner()}
     <section class="how" aria-labelledby="how-h">
       <h2 id="how-h">Load a Code <span>in Three Simple Steps</span></h2>
@@ -332,6 +346,47 @@ function shortLeft(iso) { const ms = new Date(iso) - Date.now(); if (ms <= 0) re
 // Keep the countdowns ticking.
 setInterval(() => $$('[data-expires]').forEach(el => { el.textContent = el.hasAttribute('data-short') ? shortLeft(el.dataset.expires) : remaining(el.dataset.expires); }), 20000);
 
+
+// ---------- referrals ----------
+function referPanel() {
+  const r = state.refer;
+  if (!r) return '';
+  const left = r.target - r.progress;
+  return `<section class="sect refer"><header><span class="sect-ico">${SI.hand}</span><h2>Refer &amp; Earn</h2></header>
+    <div class="ref-pad"><p class="ref-line"><b>Get ${r.rewardMonths} months free.</b> Refer ${r.target} friends who buy a weekly or monthly pass and you never pay for ${r.rewardMonths} months.</p>
+      <div class="ref-prog" aria-label="${r.progress} of ${r.target} referrals">${Array.from({ length: r.target }, (_, i) => `<i class="${i < r.progress ? 'on' : ''}"></i>`).join('')}<span>${r.progress}/${r.target}</span></div>
+      <p class="muted ref-sub">${r.progress ? `${left} more to go.` : 'Share your code to start.'}${r.rewards ? ` You have earned free access ${r.rewards} time${r.rewards === 1 ? '' : 's'}.` : ''}</p>
+      <button type="button" class="btn-primary ref-open" data-refer>${r.code ? 'Share my code' : 'Set my referral code'}</button></div></section>`;
+}
+const referDialog = $('#refer-dialog');
+function referLink(code) { return location.origin + '/?ref=' + encodeURIComponent(code); }
+function renderRefer() {
+  const r = state.refer; if (!r) return;
+  const link = r.code ? referLink(r.code) : '';
+  const wa = r.code ? 'https://wa.me/?text=' + encodeURIComponent(`Get today's booking codes on PawaOdds. Sign up with my code ${r.code}: ${link}`) : '';
+  $('#refer-body').innerHTML = `
+    <p class="muted">Refer ${r.target} people who each buy a weekly or monthly pass and you get ${r.rewardMonths} months of every code free. It repeats for every ${r.target} you bring in.</p>
+    <div class="ref-prog big">${Array.from({ length: r.target }, (_, i) => `<i class="${i < r.progress ? 'on' : ''}"></i>`).join('')}<span>${r.progress}/${r.target}</span></div>
+    <form id="ref-form" class="ref-form"><label class="fld">${r.code ? 'Your referral code' : 'Choose your referral code'} <small>(a name, a number, anything)</small>
+      <input id="ref-code" name="code" type="text" value="${esc(r.code)}" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. KOFI or 0241234567"></label>
+      <p class="form-error" id="ref-err" role="alert"></p>
+      <button type="submit" class="${r.code ? 'add' : 'btn-primary'}">${r.code ? 'Change code' : 'Save my code'}</button></form>
+    ${r.code ? `<div class="ref-share"><div class="code-box"><div><span>Your link</span><b class="ref-link">${esc(link)}</b></div>
+        <div class="code-actions"><button type="button" class="add solid" data-copy="${esc(link)}">Copy link</button></div></div>
+      <a class="btn-primary" href="${esc(wa)}" target="_blank" rel="noopener">Share on WhatsApp</a>
+      <p class="fineprint">Friends can also type <b>${esc(r.code)}</b> in the referral box when they sign up. Changing your code does not affect people already referred.</p></div>` : ''}
+    <h3 class="ref-h">Your referrals (${r.joined})</h3>
+    ${r.referred.length ? `<ul class="res-list">${r.referred.map(x => `<li><span class="rl-main"><b>${esc(x.who)}</b><small>Joined ${esc(new Date(x.joinedAt.replace(' ', 'T') + 'Z').toLocaleDateString([], { day: 'numeric', month: 'short' }))}</small></span><span class="res-badge ${x.purchased ? 'won' : ''}">${x.purchased ? 'Counted' : 'Not bought yet'}</span></li>`).join('')}</ul>` : '<p class="muted">No one yet. Share your link to get started.</p>'}
+    <p class="fineprint">A referral counts once the person buys a weekly or monthly pass. Daily passes do not count.</p>`;
+}
+function openRefer() { renderRefer(); if (!referDialog.open) referDialog.showModal(); }
+referDialog.addEventListener('click', e => { if (e.target === referDialog || e.target.closest('.refer-close')) referDialog.close(); });
+referDialog.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#ref-form [type=submit]'); btn.disabled = true; $('#ref-err').textContent = '';
+  try { state.refer = await api('/api/referrals/code', { method: 'PUT', body: { code: $('#ref-code').value.trim() } }); renderRefer(); renderPosts(); toast('Referral code saved'); }
+  catch (err) { $('#ref-err').textContent = err.message; btn.disabled = false; }
+});
 
 // ---------- results center ----------
 const RES_LABEL = { won: 'Won', lost: 'Lost', void: 'Void', pending: 'Awaiting' };
@@ -484,6 +539,7 @@ async function loadImage(img) {
 }
 
 document.addEventListener('click', async e => {
+  if (e.target.closest('[data-refer]')) return openRefer();
   if (e.target.closest('[data-results]')) return openResults();
   const ld = e.target.closest('[data-load]');
   if (ld) { try { navigator.clipboard.writeText(ld.dataset.load); } catch { /* the code is also shown on screen */ } toast('Code copied. Opening the betslip...'); return; }

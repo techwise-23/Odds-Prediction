@@ -46,6 +46,9 @@
             <input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567" required>
           </span>
         </label>
+        <label class="field" id="ref-field">Referral code <small>(optional)</small>
+          <input name="ref" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="20" placeholder="A friend's code or name">
+        </label>
         <p class="form-error" role="alert"></p>
         <button class="btn-primary" type="submit">Sign up</button>
         <p class="auth-alt"><span id="auth-alt-text">Already have an account?</span> <button type="button" class="link" id="auth-alt">Log in</button></p>
@@ -105,6 +108,11 @@
   <dialog id="post-dialog" class="tg-dialog post-dialog" aria-labelledby="post-title">
     <div class="tg-head"><h2 id="post-title">Booking code</h2><button type="button" class="icon-btn post-close" aria-label="Close">✕</button></div>
     <div id="post-body"></div>
+  </dialog>
+
+  <dialog id="refer-dialog" class="tg-dialog post-dialog" aria-labelledby="refer-title">
+    <div class="tg-head"><h2 id="refer-title">Refer &amp; earn</h2><button type="button" class="icon-btn refer-close" aria-label="Close">✕</button></div>
+    <div id="refer-body"></div>
   </dialog>
 
   <dialog id="results-dialog" class="tg-dialog post-dialog" aria-labelledby="results-title">

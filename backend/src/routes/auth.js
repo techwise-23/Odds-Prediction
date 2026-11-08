@@ -49,6 +49,15 @@ router.put('/me/platform', auth, (req, res) => {
 });
 
 
+// ---------- Phone alerts (web push) ----------
+const push = require('../push');
+router.get('/push/key', auth, (req, res) => res.json({ key: push.publicKey(), on: push.has(req.user.id) }));
+router.post('/push/subscribe', auth, (req, res) => {
+  try { push.subscribe(req.user.id, req.body && req.body.subscription); res.json({ ok: true }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+router.post('/push/unsubscribe', auth, (req, res) => { push.unsubscribe(req.user.id, req.body && req.body.endpoint); res.json({ ok: true }); });
+
 // ---------- Referrals ----------
 router.get('/referrals', auth, (req, res) => res.json(referrals.summary(req.user.id)));
 router.put('/referrals/code', auth, (req, res) => {

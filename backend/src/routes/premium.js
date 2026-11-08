@@ -15,9 +15,15 @@ function returnUrl(req) {
 
 router.post('/premium/checkout', auth, limited, async (req, res) => {
   try {
-    const r = await premium.checkout(req.user, String(req.body.plan || ''), { email: req.body.email, callbackUrl: returnUrl(req) });
-    res.json({ url: r.url, reference: r.reference });
+    const r = await premium.checkout(req.user, String(req.body.plan || ''), { email: req.body.email, callbackUrl: returnUrl(req), promo: req.body.promo });
+    res.json({ url: r.url, reference: r.reference, free: !!r.free });
   } catch (e) { res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not start the payment' }); }
+});
+
+// The promo box: what each plan would cost with this code.
+router.post('/premium/promo', auth, limited, (req, res) => {
+  try { res.json(premium.promoPreview(req.user, req.body && req.body.code)); }
+  catch (e) { res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not check that code' }); }
 });
 
 // The browser comes back from Paystack with ?reference=...; we confirm it with Paystack before unlocking anything.

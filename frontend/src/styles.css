@@ -990,3 +990,20 @@ html { background: #EAF1FF; }
 #refer-dialog .fld small { font-weight: 400; color: var(--text-2); }
 #refer-dialog input { display: block; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 16px; font-weight: 400; background: #fff; color: var(--navy); }
 #refer-dialog input:focus { border-color: var(--blue); outline: none; }
+
+/* Promo, renewal, install and alerts */
+.promo-row { display: flex; gap: 8px; margin: 12px 0 4px; }
+.promo-row input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 16px; text-transform: uppercase; background: #fff; color: var(--navy); }
+.promo-row input::placeholder { text-transform: none; }
+.promo-msg { min-height: 1.2em; margin: 0 0 6px; font-size: .85rem; font-weight: 600; color: #B42318; }
+.promo-msg.ok { color: #0F7A33; }
+.plan .price s { color: #8a97bd; font-weight: 500; font-size: .85em; }
+.vip-banner.is-soon { background: linear-gradient(135deg, #FFF4D6, #FFE7A6); border-color: #F2B705; }
+.vip-banner.is-soon .vip-copy b { color: #7A4B00; }
+.install-card { display: flex; align-items: center; gap: 12px; margin: 14px 16px; padding: 12px; border-radius: 16px; background: #fff; border: 1px solid #DCE5FB; box-shadow: 0 6px 18px rgba(11,36,102,.08); color: #0B2466; position: relative; }
+.install-card img { border-radius: 10px; flex: none; }
+.install-card div { display: grid; flex: 1; min-width: 0; font-size: .85rem; } .install-card div b { font-size: .95rem; } .install-card div span { color: #4a5a88; }
+.install-card .get { flex: none; }
+.install-x { position: absolute; top: 4px; right: 6px; background: none; border: 0; color: #8a97bd; font-size: .9rem; cursor: pointer; }
+.al-h { margin: 0 0 6px; font-family: var(--display); color: var(--navy); }
+#push-box { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }

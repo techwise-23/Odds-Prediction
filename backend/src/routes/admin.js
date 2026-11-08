@@ -286,6 +286,48 @@ router.put('/users/:id/access', adminAuth, (req, res) => {
   res.json({ ok: true, until });
 });
 
+// ---------- promo codes ----------
+const promos = require('../promos');
+const promoErr = (res, e) => res.status(e.status || 500).json({ error: e.status ? e.message : 'Could not save the promo code' });
+router.get('/promos', adminAuth, (req, res) => res.json({ promos: promos.list(), plans: config.premiumPlans.filter(p => p.price > 0).map(p => ({ key: p.key, name: p.name })) }));
+router.post('/promos', adminAuth, (req, res) => {
+  try {
+    promos.create(req.body || {}, config.premiumPlans.map(p => p.key));
+    settings.log(displayPhone(req.user.phone), 'Created a promo code', String(req.body.code || '').trim());
+    res.json({ ok: true });
+  } catch (e) { promoErr(res, e); }
+});
+router.put('/promos/:id/active', adminAuth, (req, res) => { try { promos.setActive(Number(req.params.id), !!req.body.active); res.json({ ok: true }); } catch (e) { promoErr(res, e); } });
+router.delete('/promos/:id', adminAuth, (req, res) => { try { promos.remove(Number(req.params.id)); res.json({ ok: true }); } catch (e) { promoErr(res, e); } });
+
+// ---------- users: download as a spreadsheet ----------
+router.get('/users.csv', adminAuth, (req, res) => {
+  const cell = v => {
+    let t = v == null ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; // never let a cell be read as a formula
+    return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const csvPhone = p => displayPhone(p).replace(/^\+/, ''); // "233 24 111 0000": stays text in Excel and Sheets
+  const now = new Date().toISOString();
+  const rows = db.prepare(`SELECT u.id, u.phone, u.created_at, u.platform, u.is_admin, u.blocked, u.premium_until, u.ref_code,
+      (SELECT phone FROM users r WHERE r.id = u.referred_by) AS referred_by_phone,
+      (SELECT COUNT(*) FROM users r WHERE r.referred_by = u.id AND r.ref_qualified_at IS NOT NULL) AS referrals_counted,
+      u.telegram_chat_id IS NOT NULL AS telegram,
+      EXISTS (SELECT 1 FROM push_subs s WHERE s.user_id = u.id) AS phone_alerts,
+      (SELECT plan FROM payments p WHERE p.user_id = u.id AND p.status = 'success' ORDER BY p.paid_at DESC LIMIT 1) AS last_plan,
+      (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.user_id = u.id AND p.status = 'success') AS paid
+    FROM users u ORDER BY u.id`).all();
+  const head = ['Phone', 'Joined', 'Bookmaker', 'Admin', 'Blocked', 'Access until', 'Referral code', 'Referred by', 'Referrals counted', 'Telegram', 'Phone alerts', 'Last plan', 'Total paid (' + config.paystack.currency + ')'];
+  const lines = [head.map(cell).join(',')].concat(rows.map(r => [
+    csvPhone(r.phone), r.created_at, r.platform, r.is_admin ? 'yes' : '', r.blocked ? 'yes' : '',
+    r.premium_until && r.premium_until > now ? r.premium_until : '', r.ref_code || '', r.referred_by_phone ? csvPhone(r.referred_by_phone) : '',
+    r.referrals_counted, r.telegram ? 'yes' : '', r.phone_alerts ? 'yes' : '', r.last_plan || '', (r.paid / 100).toFixed(2),
+  ].map(cell).join(',')));
+  settings.log(displayPhone(req.user.phone), 'Downloaded the users list', `${rows.length} users`);
+  res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="pawaodds-users-${now.slice(0, 10)}.csv"` });
+  res.send('\ufeff' + lines.join('\r\n') + '\r\n'); // the BOM makes Excel read it as UTF-8
+});
+
 // ---------- tickets: remove one (it is rebuilt on the next refresh while it is still listed in Settings) ----------
 router.delete('/tickets/:id', adminAuth, (req, res) => {
   const id = Number(req.params.id);

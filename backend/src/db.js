@@ -199,4 +199,34 @@ db.exec(`CREATE TABLE IF NOT EXISTS payments (
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)');
 
+// Promo codes, renewal reminders and phone (web push) alerts.
+{
+  const pc = db.prepare('PRAGMA table_info(payments)').all().map(c => c.name);
+  if (!pc.includes('promo_code')) db.exec('ALTER TABLE payments ADD COLUMN promo_code TEXT');
+  if (!pc.includes('list_amount')) db.exec('ALTER TABLE payments ADD COLUMN list_amount INTEGER');
+  const uc = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!uc.includes('renew_notified')) db.exec('ALTER TABLE users ADD COLUMN renew_notified TEXT'); // the premium_until value we last warned about
+}
+db.exec(`CREATE TABLE IF NOT EXISTS promos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL,
+  percent INTEGER NOT NULL CHECK (percent BETWEEN 1 AND 100),
+  plans TEXT NOT NULL DEFAULT '',     -- comma separated plan keys; empty = every plan
+  max_uses INTEGER,                   -- null = unlimited
+  used INTEGER NOT NULL DEFAULT 0,
+  expires_at TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS promos_code ON promos (code COLLATE NOCASE)');
+db.exec(`CREATE TABLE IF NOT EXISTS push_subs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_push_user ON push_subs(user_id)');
+
 module.exports = db;

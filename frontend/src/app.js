@@ -94,7 +94,6 @@ async function startApp() {
   $('#avatar').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>';
   $('#menu-name').textContent = state.user.name;
   state.telegram = !!me.telegram;
-  $('#tg-open').hidden = !me.telegram;
   await loadPosts();
   checkReturn();
 }
@@ -109,7 +108,7 @@ const tgDialog = $('#tg-dialog');
 let tgTimer = null;
 
 function tgRender(t, linkUrl) {
-  const body = $('#tg-body');
+  const body = $('#tg-box');
   if (!t.linked) {
     body.innerHTML = `<p class="muted">Get a message on Telegram when a new booking code is posted for your bookmaker.</p>
       ${linkUrl ? `<a class="btn-primary tg-link" href="${esc(linkUrl)}" target="_blank" rel="noopener">Open Telegram and tap Start</a>
@@ -146,8 +145,71 @@ async function tgConnect() {
 
 $('#tg-open').addEventListener('click', async () => {
   $('#menu').hidden = true;
-  try { tgRender(await api('/api/me/telegram')); } catch (err) { return toast(err.message); }
+  $('#tg-box').innerHTML = '';
+  if (state.telegram) { try { tgRender(await api('/api/me/telegram')); } catch (err) { return toast(err.message); } }
+  renderPush();
   tgDialog.showModal();
+});
+
+// ---------- phone alerts (web push) and installing the app ----------
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const keyBytes = b64 => { const p = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(raw, c => c.charCodeAt(0)); };
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* alerts and install just stay unavailable */ });
+
+async function renderPush() {
+  const box = $('#push-box');
+  if (!pushSupported()) {
+    box.innerHTML = `<h3 class="al-h">Phone alerts</h3><p class="muted">${isIOS && !isStandalone()
+      ? 'On iPhone, first add PawaOdds to your home screen: tap the Share button, then <b>Add to Home Screen</b>, and open it from there.' : 'This browser cannot show phone alerts.'}</p>`;
+    return;
+  }
+  let sub = null;
+  try { sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription(); } catch { /* treated as off */ }
+  const denied = Notification.permission === 'denied';
+  box.innerHTML = `<h3 class="al-h">Phone alerts</h3>` + (sub
+    ? `<p class="tg-on">✅ Phone alerts are on.</p><p class="muted">You get a notification when a new code is posted and before your pass ends.</p><button class="add" id="push-off" type="button">Turn off</button>`
+    : denied ? '<p class="muted">Notifications are blocked for this site. Allow them in your browser settings, then come back.</p>'
+    : `<p class="muted">Get a notification on this phone when a new code is posted, and a reminder before your pass ends.</p><button class="btn-primary" id="push-on" type="button">Turn on phone alerts</button>`);
+}
+document.addEventListener('click', async e => {
+  const on = e.target.closest('#push-on'), off = e.target.closest('#push-off');
+  if (!on && !off) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (on) {
+      on.disabled = true;
+      if ((await Notification.requestPermission()) !== 'granted') { toast('Alerts were not allowed'); return renderPush(); }
+      const { key } = await api('/api/push/key');
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+      await api('/api/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON() } });
+      toast('Phone alerts are on');
+    } else {
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) { await api('/api/push/unsubscribe', { method: 'POST', body: { endpoint: sub.endpoint } }); await sub.unsubscribe(); }
+      toast('Phone alerts are off');
+    }
+  } catch (err) { toast(err.message || 'Could not change phone alerts'); }
+  renderPush();
+});
+
+// "Install the app" card: Android/desktop Chrome offer a real install prompt; iPhone needs the Share menu.
+let installEvent = null;
+const installDismissed = () => { try { return localStorage.getItem('pawa_install_off') === '1'; } catch { return false; } };
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; if (state.user) renderPosts(); });
+window.addEventListener('appinstalled', () => { installEvent = null; if (state.user) renderPosts(); });
+function installCard() {
+  if (isStandalone() || installDismissed() || (!installEvent && !isIOS)) return '';
+  return `<section class="install-card"><img src="logo.png" alt="" width="44" height="44"><div><b>Add PawaOdds to your phone</b>
+    <span>${installEvent ? 'One tap, then open it like any app. Works with phone alerts.' : 'Tap the Share button, then <b>Add to Home Screen</b>.'}</span></div>
+    ${installEvent ? '<button type="button" class="get" data-install>Install</button>' : ''}<button type="button" class="install-x" data-install-x aria-label="Hide">✕</button></section>`;
+}
+document.addEventListener('click', async e => {
+  if (e.target.closest('[data-install-x]')) { try { localStorage.setItem('pawa_install_off', '1'); } catch { /* fine */ } return renderPosts(); }
+  if (!e.target.closest('[data-install]') || !installEvent) return;
+  installEvent.prompt(); try { await installEvent.userChoice; } catch { /* ignored */ }
+  installEvent = null; renderPosts();
 });
 tgDialog.addEventListener('close', () => clearInterval(tgTimer));
 $('.tg-close', tgDialog).addEventListener('click', () => tgDialog.close());
@@ -304,6 +366,7 @@ function renderPosts() {
       <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div></section>
     ${resultsPanel()}
     ${referPanel()}
+    ${installCard()}
     ${vipBanner()}
     <section class="how" aria-labelledby="how-h">
       <h2 id="how-h">Load a Code <span>in Three Simple Steps</span></h2>
@@ -339,7 +402,7 @@ document.querySelector('.dock').addEventListener('click', e => {
   if (to === 'results') { document.querySelector('.dock [data-dock="home"]').classList.add('on'); return openResults(); }
   if (to === 'account' || to === 'alerts') document.querySelector('.dock [data-dock="home"]').classList.add('on');
   if (to === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (to === 'alerts') { if (state.telegram) $('#tg-open').click(); else toast('Telegram alerts are not set up yet.'); }
+    if (to === 'alerts') $('#tg-open').click();
   if (to === 'account') $('#menu-btn').click();
 });
 document.addEventListener('click', e => { const s = e.target.closest('[data-scroll]'); if (s) $('#slips').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
@@ -431,6 +494,11 @@ const planName = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
 function vipBanner() {
   const pr = state.premium;
+  if (pr.active && pr.endsSoon && pr.enabled) {
+    return `<section class="vip-banner is-soon"><div class="vip-copy"><span class="vip-crown">${ICON.vip}</span><b>Your pass ends soon</b>
+      <span>It runs out ${esc(new Date(pr.until).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }))}. Renew to keep every code.</span></div>
+      <button type="button" class="get" data-unlock>Renew</button></section>`;
+  }
   if (pr.active) {
     return `<section class="vip-banner is-active"><div><b>All codes unlocked</b><span>Your pass runs until ${esc(fmtDay(pr.until))}. Every code and long bet is open.</span></div></section>`;
   }
@@ -441,22 +509,35 @@ function vipBanner() {
 }
 
 const premiumDialog = $('#premium-dialog');
-function planPicker() {
+let promo = null, promoText = '';
+const planPrice = x => (promo && promo.plans[x.key]) ? promo.plans[x.key].price : x.price;
+function planPicker(msg) {
   const pr = state.premium, cur = planOf();
+  const email = $('#pay-email') ? $('#pay-email').value : '';
+  if ($('#promo-code')) promoText = $('#promo-code').value;
   $('#premium-body').innerHTML = `
-    <p class="muted">Subscribe to unlock today's booking codes and the long bets.</p>
+    <p class="muted">${pr.active ? 'Renew to keep every booking code. Your days are added after the ones you have left.' : "Subscribe to unlock today's booking codes and the long bets."}</p>
     <div class="plan-list" role="radiogroup" aria-label="Choose a plan">${pr.plans.map(x => `
       <button type="button" class="plan" role="radio" aria-checked="${x.key === cur.key}" data-plan="${x.key}">
         <span><b>${planName[x.key] || esc(x.name)}</b><small>${x.key === 'daily' ? 'Until midnight tonight' : x.key === 'weekly' ? '1 week, Monday to Sunday' : '30 days'}</small></span>
-        <span class="price">${esc(money(x.price))}</span>${x.key === 'weekly' ? '<em>Popular</em>' : ''}</button>`).join('')}</div>
+        <span class="price">${planPrice(x) !== x.price ? `<s>${esc(money(x.price))}</s> ` : ''}${esc(money(planPrice(x)))}</span>${x.key === 'weekly' ? '<em>Popular</em>' : ''}</button>`).join('')}</div>
+    <div class="promo-row"><input id="promo-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="Promo code (optional)" value="${esc(promoText)}"><button type="button" class="add" id="promo-apply">Apply</button></div>
+    <p class="promo-msg ${promo ? 'ok' : ''}" id="promo-msg" role="status">${esc(msg || (promo ? `${promo.code}: ${promo.percent}% off applied` : ''))}</p>
     <ul class="vip-perks"><li>Today's booking codes for your bookmaker</li><li>Long bet booking codes</li><li>Valid until ${esc(fmtDay(new Date(new Date(cur.endsAt).getTime() - 1)))}, no auto-renewal</li></ul>
-    <label class="fld">Email for your receipt <small>(optional)</small><input id="pay-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></label>
-    <button type="button" class="btn-primary" id="pay-go">Subscribe ${esc(money(cur.price))}</button>
+    <label class="fld">Email for your receipt <small>(optional)</small><input id="pay-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(email)}"></label>
+    <button type="button" class="btn-primary" id="pay-go">${pr.active ? 'Renew' : 'Subscribe'} ${esc(money(planPrice(cur)))}</button>
     <p class="fineprint">You'll pay on Paystack's secure page with mobile money or card. We never see your card or MoMo PIN.</p>`;
+}
+async function applyPromo() {
+  const code = $('#promo-code').value.trim(); promoText = code;
+  if (!code) { promo = null; return planPicker(); }
+  const btn = $('#promo-apply'); btn.disabled = true;
+  try { promo = await api('/api/premium/promo', { method: 'POST', body: { code } }); promoText = promo.code; planPicker(); }
+  catch (err) { promo = null; planPicker(err.message); $('#promo-msg').classList.add('bad'); }
 }
 function openPremium() {
   const pr = state.premium;
-  if (pr.active) { toast('You are subscribed. All codes are unlocked until ' + fmtDay(pr.until) + '.'); return; }
+  if (pr.active && !pr.endsSoon) { toast('You are subscribed. All codes are unlocked until ' + fmtDay(pr.until) + '.'); return; }
   if (!pr.enabled || !pr.plans.length) { toast('Subscriptions are not open yet. Check back soon.'); return; }
   planPicker();
   if (!premiumDialog.open) premiumDialog.showModal();
@@ -464,14 +545,16 @@ function openPremium() {
 async function startPayment() {
   const btn = $('#pay-go'); btn.disabled = true; btn.textContent = 'Opening Paystack…';
   try {
-    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: planOf().key, email: $('#pay-email').value.trim(), returnUrl: location.origin + '/' } });
+    const r = await api('/api/premium/checkout', { method: 'POST', body: { plan: planOf().key, email: $('#pay-email').value.trim(), promo: promo && promo.plans[planOf().key] ? promo.code : undefined, returnUrl: location.origin + '/' } });
+    if (r.free) { premiumDialog.close(); promo = null; promoText = ''; await loadPosts(); return toast('Promo applied. All codes are unlocked.', 5000); }
     try { sessionStorage.setItem('oddsday_pay', r.reference); } catch { /* fine */ }
     location.href = r.url;
-  } catch (err) { btn.disabled = false; btn.textContent = 'Subscribe ' + money(planOf().price); toast(err.message, 5000); }
+  } catch (err) { btn.disabled = false; btn.textContent = (state.premium.active ? 'Renew ' : 'Subscribe ') + money(planPrice(planOf())); toast(err.message, 5000); }
 }
 premiumDialog.addEventListener('click', e => {
   const pl = e.target.closest('[data-plan]');
-  if (pl) { const email = $('#pay-email') ? $('#pay-email').value : ''; chosenPlan = pl.dataset.plan; planPicker(); $('#pay-email').value = email; return; }
+  if (pl) { chosenPlan = pl.dataset.plan; planPicker(); return; }
+  if (e.target.closest('#promo-apply')) return applyPromo();
   if (e.target.closest('#pay-go')) startPayment();
   if (e.target === premiumDialog || e.target.closest('.premium-close')) premiumDialog.close();
 });

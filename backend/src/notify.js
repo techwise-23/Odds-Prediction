@@ -2,6 +2,7 @@
 const db = require('./db');
 const config = require('./config');
 const telegram = require('./telegram');
+const push = require('./push');
 const { escapeHtml: h } = telegram;
 
 const platformOf = key => config.platforms.find(p => p.key === key) || config.platforms[0];
@@ -72,9 +73,19 @@ async function codeAdded(accaId, platformKey, code) {
 
 // The admin posted booking codes: tell users on each bookmaker that has a code, link or image for them.
 async function postAdded(post) {
-  if (!post || !telegram.enabled()) return { sent: 0 };
+  if (!post) return { sent: 0 };
   const what = (post.kind === 'long' ? 'long bet booking code' : "today's booking code");
   let sent = 0;
+  // Phone alerts: everyone who turned them on and has an active pass, for a bookmaker this post covers.
+  const subs = db.prepare(`SELECT DISTINCT u.* FROM users u JOIN push_subs s ON s.user_id = u.id WHERE u.blocked = 0 AND u.premium_until > ?`).all(new Date().toISOString());
+  for (const u of subs) {
+    if (!post.entries[u.platform]) continue;
+    const r = db.prepare('INSERT OR IGNORE INTO notification_log (user_id, kind, ref) VALUES (?,?,?)').run(u.id, 'push-post', String(post.id));
+    if (!r.changes) continue;
+    if (await push.sendToUser(u.id, { title: `New ${what}`, body: post.title || 'Tap to open it on PawaOdds', url: '/' })) sent++;
+    else db.prepare('DELETE FROM notification_log WHERE user_id = ? AND kind = ? AND ref = ?').run(u.id, 'push-post', String(post.id));
+  }
+  if (!telegram.enabled()) return { sent };
   for (const u of linkedUsers('notify_codes')) {
     const e = post.entries[u.platform];
     if (!e) continue;
@@ -90,4 +101,23 @@ async function postAdded(post) {
   return { sent };
 }
 
-module.exports = { morning, codeAdded, postAdded };
+// Tells people their pass is about to end (once per pass), by phone alert and Telegram.
+async function renewals() {
+  const premium = require('./premium');
+  const now = Date.now(), soon = new Date(now + 24 * 3600000).toISOString();
+  let sent = 0;
+  const due = db.prepare('SELECT * FROM users WHERE blocked = 0 AND premium_until > ? AND premium_until <= ? AND (renew_notified IS NULL OR renew_notified != premium_until)')
+    .all(new Date(now).toISOString(), soon);
+  for (const u of due) {
+    if (!premium.status(u).endsSoon) continue; // a daily pass is only warned about in its last hours
+    const when = new Date(u.premium_until).toLocaleString('en-GB', { weekday: 'long', hour: '2-digit', minute: '2-digit', timeZone: config.timezone });
+    const text = `Your PawaOdds pass ends ${when}. Renew to keep every booking code.`;
+    let ok = await push.sendToUser(u.id, { title: 'Your pass is ending', body: text, url: '/' });
+    if (u.telegram_chat_id && u.notify_codes && telegram.enabled() && await telegram.send(u.telegram_chat_id, `⏰ ${h(text)}${footer()}`)) ok = 1;
+    db.prepare('UPDATE users SET renew_notified = ? WHERE id = ?').run(u.premium_until, u.id);
+    if (ok) sent++;
+  }
+  return { sent };
+}
+
+module.exports = { morning, codeAdded, postAdded, renewals };

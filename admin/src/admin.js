@@ -213,7 +213,22 @@ async function loadCodes() {
   } catch { /* results are optional */ }
   const warn = r.storage && !r.storage.persistent ? `<div class="storage-warn" role="alert"><b>Accounts will be erased on the next deploy.</b>
     The database is not on a Volume. In Railway open the backend service, go to Volumes, add one with mount path <code>/data</code>, then redeploy. Users who sign up before that will be lost.</div>` : '';
-  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + money;
+  let promoHtml = '';
+  try {
+    const pr = await api('/api/admin/promos'), fd = d => d ? new Date(d).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : 'no expiry';
+    promoHtml = `<h2 class="section-head">Promo codes</h2><p class="muted-inline">Percentage-off codes users type when subscribing. Each user can use a code once. 100% gives the pass free.</p>
+      <form id="promo-form" class="code-card" novalidate><div class="promo-grid">
+        <label>Code<input name="code" maxlength="20" placeholder="WELCOME20" autocapitalize="characters" autocomplete="off"></label>
+        <label>% off<input name="percent" type="number" min="1" max="100" inputmode="numeric" placeholder="20"></label>
+        <label>Max uses<input name="maxUses" type="number" min="1" inputmode="numeric" placeholder="Unlimited"></label>
+        <label>Expires<input name="expiresAt" type="date"></label></div>
+        <fieldset class="promo-plans"><legend>Applies to</legend>${pr.plans.map(p => `<label><input type="checkbox" name="plan" value="${esc(p.key)}" checked> ${esc(p.name)}</label>`).join('')}</fieldset>
+        <p class="form-error" id="promo-err"></p><button class="add solid" type="submit">Create promo code</button></form>` +
+      (pr.promos.length ? pr.promos.map(x => `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(x.code)} · ${x.percent}% off</h3>
+        <span>${x.used}${x.maxUses ? '/' + x.maxUses : ''} used · ${esc(fd(x.expiresAt))} · ${x.plans.length ? esc(x.plans.join(', ')) : 'all plans'}${x.active ? '' : ' · paused'}</span></div>
+        <div class="adm-user-btns"><button class="add" data-promo-toggle="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? 'Pause' : 'Resume'}</button><button class="add danger" data-promo-del="${x.id}">Delete</button></div></article>`).join('') : '<div class="empty">No promo codes yet.</div>');
+  } catch { /* promos are optional */ }
+  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
@@ -672,3 +687,30 @@ async function boot() {
   view('console'); loadAdmin();
 }
 boot();
+
+
+// ---------- promo codes and users export ----------
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'promo-form') return;
+  e.preventDefault();
+  const f = e.target, fd = new FormData(f), err = $('#promo-err'); err.textContent = '';
+  try {
+    await api('/api/admin/promos', { method: 'POST', body: { code: fd.get('code'), percent: fd.get('percent'), maxUses: fd.get('maxUses'), expiresAt: fd.get('expiresAt'), plans: fd.getAll('plan') } });
+    toast('Promo code created'); loadCodes();
+  } catch (x) { err.textContent = x.message; }
+});
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-promo-toggle]'), d = e.target.closest('[data-promo-del]');
+  try {
+    if (t) { await api(`/api/admin/promos/${t.dataset.promoToggle}/active`, { method: 'PUT', body: { active: t.dataset.on === '1' } }); loadCodes(); }
+    else if (d && confirm('Delete this promo code?')) { await api(`/api/admin/promos/${d.dataset.promoDel}`, { method: 'DELETE' }); loadCodes(); }
+  } catch (x) { toast(x.message); }
+});
+$('#adm-csv').addEventListener('click', async () => {
+  try {
+    const res = await fetch(API_URL + '/api/admin/users.csv', { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} });
+    if (!res.ok) throw new Error('Could not download the users file');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(await res.blob()); a.download = 'pawaodds-users-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (x) { toast(x.message); }
+});

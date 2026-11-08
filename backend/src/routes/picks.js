@@ -12,7 +12,7 @@ const router = express.Router();
 
 // Booking codes posted by the admin. Expired posts are never returned.
 router.get('/posts', auth, (req, res) => {
-  res.json({ posts: posts.active({ premium: premium.isActive(req.user) }), premium: { ...premium.status(req.user), ...premium.offer() }, platforms: config.platforms.map(({ key, name, url, loadUrl }) => ({ key, name, url, loadUrl: loadUrl || '' })), now: new Date().toISOString() });
+  res.json({ posts: posts.active({ premium: premium.isActive(req.user) }), premium: { ...premium.status(req.user), ...premium.offer(req.user) }, platforms: config.platforms.map(({ key, name, url, loadUrl }) => ({ key, name, url, loadUrl: loadUrl || '' })), now: new Date().toISOString() });
 });
 // Results center: win/loss record of the posted codes (no codes shown, so it is open to every signed-in user).
 router.get('/results', auth, (req, res) => res.json(require('../results').publicView()));

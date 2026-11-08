@@ -84,7 +84,7 @@
       </button>
       <div id="menu" class="menu" hidden>
         <p id="menu-name"></p><p class="menu-sub">Signed in with your phone number</p>
-        <button id="tg-open" hidden>Telegram alerts</button>
+        <button id="tg-open">Alerts</button>
         <button id="logout">Log out</button>
       </div>
     </header>
@@ -126,8 +126,9 @@
   </dialog>
 
   <dialog id="tg-dialog" class="tg-dialog" aria-labelledby="tg-title">
-    <div class="tg-head"><h2 id="tg-title">Telegram alerts</h2><button type="button" class="icon-btn tg-close" aria-label="Close">✕</button></div>
-    <div id="tg-body"></div>
+    <div class="tg-head"><h2 id="tg-title">Alerts</h2><button type="button" class="icon-btn tg-close" aria-label="Close">✕</button></div>
+    <div id="push-box"></div>
+    <div id="tg-box"></div>
   </dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>

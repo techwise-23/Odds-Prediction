@@ -178,3 +178,10 @@ Every user can pick their own referral code (a name, a number, 3-20 letters, num
 - **Free access:** Admin -> Users -> *Free access...* on a user adds 7, 30, 90 or 365 days of every code (after any pass they already have), or removes their access.
 - **Block / delete:** the same row has **Block** (logs them out at once and stops login until you unblock) and **Delete** (removes the account). Admins must lose admin access before they can be blocked.
 - **Schedule codes:** on the Codes tab, *Goes live on* sets a later day for one post, and *Add several days at once* lets you fill in up to 14 days in one go. A day's codes go live at midnight (app time zone) and are replaced at midnight by the next day's codes. Telegram alerts for a scheduled day are sent when it goes live.
+
+## Promo codes, phone alerts, renewal reminders, users export
+
+- **Promo codes**: Admin > Codes > Promo codes. Percentage off (100% = free pass), optional plans, max uses and expiry. One use per user; counted only when payment succeeds.
+- **Phone alerts (PWA)**: the site is installable and can send web-push alerts for new codes and expiring passes. Keys are generated automatically and stored beside the database; to pin them set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and optionally `VAPID_SUBJECT` (e.g. `mailto:you@example.com`). Needs HTTPS. On iPhone users must first Add to Home Screen.
+- **Renewal reminders**: users whose pass ends within 24 h (5 h for daily passes) get an in-app banner, a push alert and a Telegram message. Buying while active adds the plan length after the current end.
+- **Users export**: Admin > Users > Download all users (CSV).

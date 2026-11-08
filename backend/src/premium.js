@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const db = require('./db');
 const config = require('./config');
 const posts = require('./posts');
+const promos = require('./promos');
 
 const plans = () => config.premiumPlans.filter(p => p.price > 0);
 const planOf = key => plans().find(p => p.key === key);
@@ -20,17 +21,29 @@ function planEnd(key) {
   if (key === 'monthly') return new Date(Date.now() + 30 * 86400000);
   return weekEnd();
 }
-const daysLeft = key => Math.max(1, Math.ceil((planEnd(key) - Date.now()) / 86400000));
+const DURATION = { daily: 1, weekly: 7, monthly: 30 }; // days added when a pass is bought while one is still running
+// When a pass bought now stops working. Buying while a pass is still running adds the plan's length on top, so renewing early never wastes days.
+function endFor(user, key) {
+  if (isActive(user)) return new Date(new Date(user.premium_until).getTime() + (DURATION[key] || 7) * 86400000);
+  return planEnd(key);
+}
+const daysLeft = (key, user) => Math.max(1, Math.ceil((endFor(user, key) - Date.now()) / 86400000));
 const PLAN_TEXT = { daily: 'until midnight tonight', weekly: 'Monday to Sunday', monthly: '30 days' };
 const isActive = u => !!(u && u.premium_until && new Date(u.premium_until) > new Date());
 
+// How long before the end of a pass we start asking people to renew (a daily pass: only the last few hours).
+function warnHours(userId) {
+  const last = db.prepare("SELECT plan FROM payments WHERE user_id = ? AND status = 'success' ORDER BY paid_at DESC LIMIT 1").get(userId);
+  return last && last.plan === 'daily' ? 5 : 24;
+}
 function status(user) {
-  return { active: isActive(user), until: user && user.premium_until && isActive(user) ? user.premium_until : null };
+  const active = isActive(user), hoursLeft = active ? (new Date(user.premium_until) - Date.now()) / 3600000 : null;
+  return { active, until: active ? user.premium_until : null, endsSoon: active && hoursLeft <= warnHours(user.id) };
 }
 
 // What the apps need to show the upgrade screen.
-function offer() {
-  return { enabled: enabled(), currency: config.paystack.currency, endsAt: weekEnd().toISOString(), daysLeft: daysLeft('weekly'), plans: plans().map(({ key, name, price }) => ({ key, name, price, endsAt: planEnd(key).toISOString(), days: daysLeft(key), text: PLAN_TEXT[key] || '' })) };
+function offer(user) {
+  return { enabled: enabled(), currency: config.paystack.currency, endsAt: endFor(user, 'weekly').toISOString(), daysLeft: daysLeft('weekly', user), plans: plans().map(({ key, name, price }) => ({ key, name, price, endsAt: endFor(user, key).toISOString(), days: daysLeft(key, user), text: PLAN_TEXT[key] || '' })) };
 }
 
 async function paystack(method, path, body) {
@@ -48,21 +61,39 @@ async function paystack(method, path, body) {
 
 const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim()) ? String(v).trim().toLowerCase() : '';
 
+// What a plan costs after an optional promo code, in pesewas.
+const discounted = (plan, promo) => promo ? Math.round(toMinor(plan.price) * (100 - promo.percent) / 100) : toMinor(plan.price);
+
+// For the promo box: the price of every plan this code applies to.
+function promoPreview(user, code) {
+  const out = {};
+  let first = null, firstErr = null;
+  for (const plan of plans()) {
+    try { const p = promos.validate(code, plan.key, user.id); first = p; out[plan.key] = { original: plan.price, price: discounted(plan, p) / 100 }; }
+    catch (e) { firstErr = firstErr || e; }
+  }
+  if (!first) throw firstErr || Object.assign(new Error('That promo code is not valid'), { status: 400 });
+  return { code: first.code, percent: first.percent, plans: out };
+}
+
 // Step 1: create a pending payment and get Paystack's checkout address.
-async function checkout(user, planKey, { email, callbackUrl }) {
+async function checkout(user, planKey, { email, callbackUrl, promo: promoCode }) {
   if (!enabled()) throw Object.assign(new Error('Payments are not switched on yet. Please check back soon.'), { status: 503 });
   const plan = planOf(planKey) || plans()[0];
   if (!plan) throw Object.assign(new Error('Choose a plan'), { status: 400 });
+  const promo = promoCode ? promos.validate(promoCode, plan.key, user.id) : null;
   const reference = 'OD-' + Date.now().toString(36).toUpperCase() + '-' + crypto.randomBytes(5).toString('hex').toUpperCase();
-  const amount = toMinor(plan.price);
+  const amount = discounted(plan, promo), days = daysLeft(plan.key, user);
+  const save = () => db.prepare('INSERT INTO payments (reference, user_id, plan, days, amount, currency, promo_code, list_amount) VALUES (?,?,?,?,?,?,?,?)')
+    .run(reference, user.id, plan.key, days, amount, config.paystack.currency, promo ? promo.code : null, toMinor(plan.price));
+  if (amount <= 0) { save(); grant(reference, 'promo'); return { reference, free: true }; } // a 100% code: nothing to pay
   const data = await paystack('POST', '/transaction/initialize', {
     email: validEmail(email) || `${user.phone}@pawaodds.app`,
     amount, currency: config.paystack.currency, reference,
     callback_url: callbackUrl || undefined,
-    metadata: { user_id: user.id, plan: plan.key, custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: `${plan.name} (${PLAN_TEXT[plan.key] || ''})` }] },
+    metadata: { user_id: user.id, plan: plan.key, promo: promo ? promo.code : undefined, custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: `${plan.name} (${PLAN_TEXT[plan.key] || ''})${promo ? ' with code ' + promo.code : ''}` }] },
   });
-  db.prepare('INSERT INTO payments (reference, user_id, plan, days, amount, currency) VALUES (?,?,?,?,?,?)')
-    .run(reference, user.id, plan.key, daysLeft(plan.key), amount, config.paystack.currency);
+  save();
   return { reference, url: data.authorization_url };
 }
 
@@ -74,9 +105,10 @@ const grant = db.transaction((reference, channel) => {
     .run(new Date().toISOString(), channel || null, reference).changes;
   if (done) {
     // Access lasts as long as the plan says (a later payment never shortens an existing pass).
-    const u = db.prepare('SELECT premium_until FROM users WHERE id = ?').get(pay.user_id);
-    const end = new Date(planEnd(pay.plan).getTime() - 1000), cur = u && u.premium_until ? new Date(u.premium_until) : null;
-    db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run((cur && cur > end ? cur : end).toISOString(), pay.user_id);
+    const u = db.prepare('SELECT * FROM users WHERE id = ?').get(pay.user_id);
+    const end = new Date(endFor(u, pay.plan).getTime() - (isActive(u) ? 0 : 1000));
+    db.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run(end.toISOString(), pay.user_id);
+    if (pay.promo_code) db.prepare('UPDATE promos SET used = used + 1 WHERE code = ? COLLATE NOCASE').run(pay.promo_code);
     require('./referrals').onPurchase(pay.user_id, pay.plan); // may earn the person who referred them free access
   }
   return { ...pay, newlyPaid: !!done };
@@ -114,4 +146,4 @@ function summary() {
   return { active, week: sum(7), month: sum(30), recent, currency: config.paystack.currency, enabled: enabled() };
 }
 
-module.exports = { enabled, offer, status, isActive, checkout, verify, grant, webhookValid, summary };
+module.exports = { promoPreview, enabled, offer, status, isActive, checkout, verify, grant, webhookValid, summary };

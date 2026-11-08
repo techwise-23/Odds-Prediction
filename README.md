@@ -161,3 +161,8 @@ accumulators lose most of the time; the Record page shows real results.
 ### Loading a code straight into a bookmaker
 
 On a booking code, users get a **Load code in SportyBet** button that opens `https://www.sportybet.com/gh/?shareCode=<code>` and also copies the code. To add the same for another bookmaker, set `LOAD_URL_MSPORT`, `LOAD_URL_FOOTBALLCOM` or `LOAD_URL_BETWAY` (or `LOAD_URL_SPORTYBET` to change SportyBet's) on the backend to that bookmaker's share link with `{code}` where the code goes.
+
+
+### Results center
+
+Every posted code gets a result row that stays after the post expires. In the admin console (Codes tab, **Results**) tap **Won**, **Lost** or **Void** once the games finish. Users see the 30-day win rate, winning run and the latest results on the home screen and under the **Results** tab. Codes themselves are never shown there.

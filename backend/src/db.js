@@ -149,6 +149,19 @@ db.exec(`CREATE TABLE IF NOT EXISTS post_images (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 )`);
 
+// Results center: one row per booking-code post, kept after the post itself expires. The admin marks won/lost/void.
+db.exec(`CREATE TABLE IF NOT EXISTS results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id INTEGER,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  date TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','won','lost','void')),
+  settled_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+db.exec('INSERT INTO results (post_id, kind, title, date) SELECT id, kind, title, date FROM posts WHERE id NOT IN (SELECT post_id FROM results WHERE post_id IS NOT NULL)');
+
 // Premium subscriptions (paid through Paystack).
 if (!userCols.includes('premium_until')) db.exec('ALTER TABLE users ADD COLUMN premium_until TEXT');
 const postCols = db.prepare('PRAGMA table_info(posts)').all().map(c => c.name);

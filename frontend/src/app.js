@@ -5,7 +5,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const state = { user: null, posts: [], platforms: [], open: null, premium: { active: false, until: null, enabled: false, plans: [], currency: 'GHS' } };
+const state = { user: null, posts: [], platforms: [], open: null, results: null, premium: { active: false, until: null, enabled: false, plans: [], currency: 'GHS' } };
 
 // Session token kept in this browser as a fallback for browsers that block cross-site cookies (see the backend's auth.js).
 const TOKEN_KEY = 'oddsday_token';
@@ -149,7 +149,9 @@ async function loadPosts() {
   let r;
   try { r = await api('/api/posts'); } catch (err) { $('#posts').innerHTML = `<div class="empty"><b>Could not load codes.</b><br>${esc(err.message)}</div>`; return; }
   state.posts = r.posts; state.platforms = r.platforms; state.premium = r.premium || state.premium;
+  try { state.results = await api('/api/results'); } catch { /* the results panel just stays hidden */ }
   renderPosts();
+  if (resultsDialog.open) renderResults();
   if (state.open) { const p = state.posts.find(x => x.id === state.open); p ? openPost(p.id) : closeDialog(); }
 }
 
@@ -286,6 +288,7 @@ function renderPosts() {
     </section>
     <section class="sect long"><header><span class="sect-ico">${SI.bars}</span><h2>Long Bet Booking Code</h2></header>
       <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div></section>
+    ${resultsPanel()}
     ${vipBanner()}
     <section class="how" aria-labelledby="how-h">
       <h2 id="how-h">Load a Code <span>in Three Simple Steps</span></h2>
@@ -317,7 +320,8 @@ document.querySelector('.dock').addEventListener('click', e => {
   const b = e.target.closest('[data-dock]'); if (!b) return;
   e.stopPropagation(); // the page closes the menu on any outside click
   const to = b.dataset.dock;
-  $$('.dock button').forEach(x => x.classList.toggle('on', x === b && to !== 'account' && to !== 'alerts'));
+  $$('.dock button').forEach(x => x.classList.toggle('on', x === b && to !== 'account' && to !== 'alerts' && to !== 'results'));
+  if (to === 'results') { document.querySelector('.dock [data-dock="home"]').classList.add('on'); return openResults(); }
   if (to === 'account' || to === 'alerts') document.querySelector('.dock [data-dock="home"]').classList.add('on');
   if (to === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
     if (to === 'alerts') { if (state.telegram) $('#tg-open').click(); else toast('Telegram alerts are not set up yet.'); }
@@ -328,6 +332,37 @@ function shortLeft(iso) { const ms = new Date(iso) - Date.now(); if (ms <= 0) re
 // Keep the countdowns ticking.
 setInterval(() => $$('[data-expires]').forEach(el => { el.textContent = el.hasAttribute('data-short') ? shortLeft(el.dataset.expires) : remaining(el.dataset.expires); }), 20000);
 
+
+// ---------- results center ----------
+const RES_LABEL = { won: 'Won', lost: 'Lost', void: 'Void', pending: 'Awaiting' };
+const resultDots = items => items.filter(x => x.status === 'won' || x.status === 'lost').slice(0, 10).reverse().map(x => `<i class="rd ${x.status}" title="${RES_LABEL[x.status]}"></i>`).join('');
+function resultsPanel() {
+  const r = state.results;
+  if (!r) return '';
+  const dots = resultDots(r.items);
+  return `<section class="sect results"><header><span class="sect-ico">${SI.bars}</span><h2>Results Center</h2></header>
+    <div class="res-sum">
+      <div class="res-rate"><b>${r.rate === null ? '-' : r.rate + '%'}</b><span>Win rate, last ${r.days} days</span></div>
+      <div class="res-tiles"><div><b>${r.won}</b><span>Won</span></div><div><b>${r.lost}</b><span>Lost</span></div><div><b>${r.streak}</b><span>Winning run</span></div></div>
+    </div>
+    ${dots ? `<div class="res-dots" aria-label="Latest results">${dots}</div>` : '<p class="muted res-none">Results show up here once codes are settled.</p>'}
+    <button type="button" class="add res-all" data-results>See all results</button></section>`;
+}
+const resultsDialog = $('#results-dialog');
+function renderResults() {
+  const r = state.results; if (!r) return;
+  const day = d => new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+  $('#results-body').innerHTML = `
+    <div class="res-sum big">
+      <div class="res-rate"><b>${r.rate === null ? '-' : r.rate + '%'}</b><span>Win rate, last ${r.days} days</span></div>
+      <div class="res-tiles"><div><b>${r.won}</b><span>Won</span></div><div><b>${r.lost}</b><span>Lost</span></div><div><b>${r.void}</b><span>Void</span></div><div><b>${r.streak}</b><span>Winning run</span></div></div>
+    </div>
+    ${r.items.length ? `<ul class="res-list">${r.items.map(x => `<li><span class="rl-main"><b>${esc(x.title || (x.kind === 'long' ? 'Long bet' : "Today's code"))}</b><small>${x.kind === 'long' ? 'Long bet' : 'Today'} · ${esc(day(x.date))}</small></span><span class="res-badge ${x.status}">${RES_LABEL[x.status]}</span></li>`).join('')}</ul>`
+      : '<p class="muted">No results yet. They appear as soon as codes are settled.</p>'}
+    <p class="fineprint">Results are marked by the PawaOdds team after the games finish. Past results do not guarantee future wins. 18+ only. Bet responsibly.</p>`;
+}
+function openResults() { renderResults(); if (!resultsDialog.open) resultsDialog.showModal(); }
+resultsDialog.addEventListener('click', e => { if (e.target === resultsDialog || e.target.closest('.results-close')) resultsDialog.close(); });
 
 // ---------- premium ----------
 const CUR = { GHS: 'GH₵', NGN: '₦', ZAR: 'R', KES: 'KSh', USD: '$' };
@@ -449,6 +484,7 @@ async function loadImage(img) {
 }
 
 document.addEventListener('click', async e => {
+  if (e.target.closest('[data-results]')) return openResults();
   const ld = e.target.closest('[data-load]');
   if (ld) { try { navigator.clipboard.writeText(ld.dataset.load); } catch { /* the code is also shown on screen */ } toast('Code copied. Opening the betslip...'); return; }
   if (e.target.closest('[data-unlock]')) return openPremium();

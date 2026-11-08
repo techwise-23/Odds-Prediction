@@ -96,6 +96,7 @@
 
     <nav class="dock" aria-label="Main">
       <button type="button" data-dock="home" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11L12 3.5 20.5 11V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"/></svg>Home</button>
+      <button type="button" data-dock="results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-7"/></svg>Results</button>
       <button type="button" data-dock="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11 20l3-4.5 4 3z"/><path d="M9 13.5L21 4"/></svg>Alerts</button>
       <button type="button" data-dock="account"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>Account</button>
     </nav>
@@ -104,6 +105,11 @@
   <dialog id="post-dialog" class="tg-dialog post-dialog" aria-labelledby="post-title">
     <div class="tg-head"><h2 id="post-title">Booking code</h2><button type="button" class="icon-btn post-close" aria-label="Close">✕</button></div>
     <div id="post-body"></div>
+  </dialog>
+
+  <dialog id="results-dialog" class="tg-dialog post-dialog" aria-labelledby="results-title">
+    <div class="tg-head"><h2 id="results-title">Results center</h2><button type="button" class="icon-btn results-close" aria-label="Close">✕</button></div>
+    <div id="results-body"></div>
   </dialog>
 
   <dialog id="premium-dialog" class="tg-dialog post-dialog" aria-labelledby="premium-title">

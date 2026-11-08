@@ -164,3 +164,11 @@ body.admin-page .subnav { top: calc(62px + env(safe-area-inset-top)); }
 .storage-warn b { display: block; color: #fff; margin-bottom: 2px; font-size: 1rem; } .storage-warn code { background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 5px; }
 
 .logo span { color: #F2B705; -webkit-text-fill-color: #F2B705; }
+
+.res-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.res-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.res-btn { padding: 7px 14px; border-radius: 99px; border: 1.5px solid #3a4a7a; background: transparent; color: inherit; font: inherit; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.res-btn.on.won { background: #16a34a; border-color: #16a34a; color: #fff; }
+.res-btn.on.lost { background: #dc2626; border-color: #dc2626; color: #fff; }
+.res-btn.on.void { background: #64748b; border-color: #64748b; color: #fff; }
+.res-btn.on.pending { background: #F2B705; border-color: #F2B705; color: #2a1b00; }

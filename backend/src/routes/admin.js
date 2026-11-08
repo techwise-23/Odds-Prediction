@@ -87,6 +87,12 @@ router.put('/posts/:id', adminAuth, (req, res) => {
   catch (e) { postErr(res, e); }
 });
 router.get('/premium', adminAuth, (req, res) => res.json(require('../premium').summary()));
+const results = require('../results');
+router.get('/results', adminAuth, (req, res) => res.json({ results: results.listAll() }));
+router.put('/results/:id', adminAuth, (req, res) => {
+  try { results.settle(Number(req.params.id), String(req.body.status || '')); res.json({ ok: true }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 router.delete('/posts/:id', adminAuth, (req, res) => {
   if (!posts.remove(Number(req.params.id))) return res.status(404).json({ error: 'Post not found' });
   settings.log(displayPhone(req.user.phone), 'Deleted a booking-code post');

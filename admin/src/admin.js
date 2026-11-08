@@ -138,9 +138,19 @@ async function loadCodes() {
       ${m.enabled ? '' : '<p class="form-error">Paystack is not connected. Add PAYSTACK_SECRET_KEY on the backend.</p>'}
       ${m.recent.length ? `<ul class="pay-list">${m.recent.map(x => `<li><span>${esc(x.phone)} · ${esc(x.plan)}${x.channel ? ' · ' + esc(x.channel.replace('_', ' ')) : ''}</span><b>${f(x.amount)}</b></li>`).join('')}</ul>` : '<p class="muted-inline">No payments yet.</p>'}</div>`;
   } catch { /* summary is optional */ }
+  let resHtml = '';
+  try {
+    const rr = (await api('/api/admin/results')).results;
+    const lab = { pending: 'Pending', won: 'Won', lost: 'Lost', void: 'Void' };
+    resHtml = '<h2 class="section-head">Results</h2><p class="muted-inline">Mark how each code finished. Users see the win rate and these results in the Results center.</p>' +
+      (rr.length ? rr.map(x => `<article class="code-card res-row" data-res="${x.id}"><div class="code-card-head"><h3>${esc(x.title || (x.kind === 'long' ? 'Long bet' : "Today's code"))}</h3>
+        <span>${x.kind === 'long' ? 'Long bet' : 'Today'} · ${esc(x.date)}</span></div>
+        <div class="res-btns" role="group" aria-label="Result">${['won', 'lost', 'void', 'pending'].map(k => `<button type="button" class="res-btn ${k}${x.status === k ? ' on' : ''}" data-res-set="${k}" aria-pressed="${x.status === k}">${lab[k]}</button>`).join('')}</div></article>`).join('')
+        : '<div class="empty">Results appear here as you post codes.</div>');
+  } catch { /* results are optional */ }
   const warn = r.storage && !r.storage.persistent ? `<div class="storage-warn" role="alert"><b>Accounts will be erased on the next deploy.</b>
     The database is not on a Volume. In Railway open the backend service, go to Volumes, add one with mount path <code>/data</code>, then redeploy. Users who sign up before that will be lost.</div>` : '';
-  $('#codes').innerHTML = warn + composeHtml() + '<h2 class="section-head">Live posts</h2>' + list + money;
+  $('#codes').innerHTML = warn + composeHtml() + '<h2 class="section-head">Live posts</h2>' + list + resHtml + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
@@ -155,8 +165,14 @@ function redrawCompose() {
 
 document.addEventListener('click', async e => {
   const kind = e.target.closest('[data-kind]'), clr = e.target.closest('[data-img-clear]'), ed = e.target.closest('[data-post-edit]'),
-    del = e.target.closest('[data-post-del]'), cancel = e.target.closest('[data-post-cancel]');
+    del = e.target.closest('[data-post-del]'), cancel = e.target.closest('[data-post-cancel]'), rs = e.target.closest('[data-res-set]');
   try {
+    if (rs) {
+      const row = rs.closest('[data-res]');
+      await api('/api/admin/results/' + row.dataset.res, { method: 'PUT', body: { status: rs.dataset.resSet } });
+      $$('.res-btn', row).forEach(b => { const on = b === rs; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+      return;
+    }
     if (kind) { post.kind = kind.dataset.kind; return redrawCompose(); }
     if (clr) { post.imgs[clr.dataset.imgClear] = null; return redrawCompose(); }
     if (cancel) { Object.assign(post, { editing: null, existing: null, imgs: {} }); return loadCodes(); }

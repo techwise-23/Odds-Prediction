@@ -73,6 +73,7 @@ function create({ kind, title, lastMatchAt, entries, premium, by }) {
     const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by, premium) VALUES (?,?,?,?,?,?,?)')
       .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null, premium ? 1 : 0);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
+    db.prepare('INSERT INTO results (post_id, kind, title, date) VALUES (?,?,?,?)').run(id, kind, String(title || '').trim().slice(0, 80), date);
     return Number(id);
   })();
 }
@@ -90,6 +91,7 @@ function update(id, { title, lastMatchAt, entries, premium }) {
   }
   db.transaction(() => {
     db.prepare('UPDATE posts SET title = ?, last_match_at = ?, expires_at = ?, premium = ? WHERE id = ?').run(String(title ?? post.title).trim().slice(0, 80), last, expires, premium === undefined ? post.premium : (premium ? 1 : 0), id);
+    db.prepare('UPDATE results SET title = ? WHERE post_id = ?').run(String(title ?? post.title).trim().slice(0, 80), id);
     db.prepare('DELETE FROM post_entries WHERE post_id = ?').run(id);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
   })();
@@ -98,6 +100,7 @@ function update(id, { title, lastMatchAt, entries, premium }) {
 
 function remove(id) {
   const r = db.prepare('DELETE FROM posts WHERE id = ?').run(id);
+  db.prepare("DELETE FROM results WHERE post_id = ? AND status = 'pending'").run(id); // a mistaken post leaves no trace; settled ones stay on record
   purgeImages();
   return r.changes > 0;
 }

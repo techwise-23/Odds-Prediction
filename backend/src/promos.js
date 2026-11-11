@@ -5,9 +5,9 @@ const CODE_RE = /^[A-Za-z0-9_-]{3,20}$/;
 const bad = (msg, status = 400) => Object.assign(new Error(msg), { status });
 
 const row = p => ({ id: p.id, code: p.code, percent: p.percent, plans: p.plans ? p.plans.split(',') : [], maxUses: p.max_uses, used: p.used,
-  expiresAt: p.expires_at, active: !!p.active });
+  expiresAt: p.expires_at, active: !!p.active, winback: !!p.winback });
 
-function create({ code, percent, plans, maxUses, expiresAt }, planKeys) {
+function create({ code, percent, plans, maxUses, expiresAt, winback }, planKeys) {
   code = String(code || '').trim();
   if (!CODE_RE.test(code)) throw bad('Code: 3 to 20 letters, numbers, - or _ (no spaces)');
   percent = Math.floor(Number(percent));
@@ -22,7 +22,7 @@ function create({ code, percent, plans, maxUses, expiresAt }, planKeys) {
     exp = d.toISOString();
   }
   if (db.prepare('SELECT 1 FROM promos WHERE code = ? COLLATE NOCASE').get(code)) throw bad('That code already exists', 409);
-  db.prepare('INSERT INTO promos (code, percent, plans, max_uses, expires_at) VALUES (?,?,?,?,?)').run(code, percent, list.join(','), max, exp);
+  db.prepare('INSERT INTO promos (code, percent, plans, max_uses, expires_at, winback) VALUES (?,?,?,?,?,?)').run(code, percent, list.join(','), max, exp, winback ? 1 : 0);
 }
 const list = () => db.prepare('SELECT * FROM promos ORDER BY id DESC LIMIT 200').all().map(row);
 const setActive = (id, on) => { if (!db.prepare('UPDATE promos SET active = ? WHERE id = ?').run(on ? 1 : 0, id).changes) throw bad('Promo not found', 404); };
@@ -40,4 +40,10 @@ function validate(code, planKey, userId) {
   return p;
 }
 
-module.exports = { create, list, setActive, remove, validate };
+// The newest running code marked "for win-back messages" (used when we write to people whose pass lapsed).
+function winbackCode() {
+  const now = new Date().toISOString();
+  return db.prepare('SELECT * FROM promos WHERE winback = 1 AND active = 1 AND (expires_at IS NULL OR expires_at > ?) AND (max_uses IS NULL OR used < max_uses) ORDER BY id DESC LIMIT 1').get(now) || null;
+}
+
+module.exports = { winbackCode, create, list, setActive, remove, validate };

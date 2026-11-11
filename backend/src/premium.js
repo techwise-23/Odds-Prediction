@@ -137,6 +137,38 @@ function webhookValid(rawBody, signature) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// Safety net: a payment Paystack confirmed but whose customer never came back (and whose webhook never arrived) is
+// re-checked every few minutes for 3 days, and unlocks by itself.
+let reconciling = false;
+async function reconcile() {
+  if (!enabled() || reconciling) return { checked: 0, unlocked: 0 };
+  reconciling = true;
+  let checked = 0, unlocked = 0;
+  try {
+    for (const p of db.prepare("SELECT reference FROM payments WHERE status != 'success' AND created_at <= datetime('now','-3 minutes') AND created_at >= datetime('now','-3 days') ORDER BY rowid DESC LIMIT 25").all()) {
+      checked++;
+      try { const r = await verify(p.reference); if (r.paid) unlocked++; } catch (e) { if (e.status === 409) console.error('reconcile:', e.message); /* Paystack unreachable or not found: try again next time */ }
+    }
+  } finally { reconciling = false; }
+  if (unlocked) console.log(`Payments: unlocked ${unlocked} late payment(s)`);
+  return { checked, unlocked };
+}
+
+// Admin list: newest first, optionally only unpaid ones.
+function listPayments({ status, limit = 100 } = {}) {
+  const where = status === 'pending' ? "WHERE p.status != 'success'" : status === 'success' ? "WHERE p.status = 'success'" : '';
+  return db.prepare(`SELECT p.reference, p.plan, p.amount, p.currency, p.status, p.channel, p.promo_code, p.created_at, p.paid_at, u.phone FROM payments p
+    JOIN users u ON u.id = p.user_id ${where} ORDER BY p.rowid DESC LIMIT ?`).all(Math.min(Number(limit) || 100, 300));
+}
+
+// Admin override for a customer who paid but whose payment never confirmed (checked by hand against Paystack's dashboard).
+function manualUnlock(reference) {
+  const pay = db.prepare('SELECT status FROM payments WHERE reference = ?').get(String(reference || ''));
+  if (!pay) throw Object.assign(new Error('Payment not found'), { status: 404 });
+  if (pay.status === 'success') throw Object.assign(new Error('That payment is already unlocked'), { status: 409 });
+  return grant(reference, 'manual');
+}
+
 function summary() {
   const now = new Date().toISOString();
   const active = db.prepare('SELECT COUNT(*) c FROM users WHERE premium_until > ?').get(now).c;
@@ -146,4 +178,4 @@ function summary() {
   return { active, week: sum(7), month: sum(30), recent, currency: config.paystack.currency, enabled: enabled() };
 }
 
-module.exports = { promoPreview, enabled, offer, status, isActive, checkout, verify, grant, webhookValid, summary };
+module.exports = { reconcile, listPayments, manualUnlock, promoPreview, enabled, offer, status, isActive, checkout, verify, grant, webhookValid, summary };

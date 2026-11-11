@@ -230,3 +230,17 @@ db.exec(`CREATE TABLE IF NOT EXISTS push_subs (
 db.exec('CREATE INDEX IF NOT EXISTS idx_push_user ON push_subs(user_id)');
 
 module.exports = db;
+
+// Free teaser posts, win-back messages, funnel events.
+{
+  const pc = db.prepare('PRAGMA table_info(posts)').all().map(c => c.name);
+  if (!pc.includes('free')) db.exec('ALTER TABLE posts ADD COLUMN free INTEGER NOT NULL DEFAULT 0');
+  const uc = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!uc.includes('winback_notified')) db.exec('ALTER TABLE users ADD COLUMN winback_notified TEXT'); // the premium_until value we last sent a win-back for
+  const rc = db.prepare('PRAGMA table_info(promos)').all().map(c => c.name);
+  if (!rc.includes('winback')) db.exec('ALTER TABLE promos ADD COLUMN winback INTEGER NOT NULL DEFAULT 0');
+  db.exec(`CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_events_kind ON events(kind, created_at)');
+}

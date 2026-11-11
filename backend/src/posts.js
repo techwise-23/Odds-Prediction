@@ -67,7 +67,7 @@ function cleanDate(v) {
   return d;
 }
 
-function create({ kind, title, lastMatchAt, entries, premium, by, date: wanted }) {
+function create({ kind, title, lastMatchAt, entries, premium, free, by, date: wanted }) {
   if (!['daily', 'long'].includes(kind)) throw Object.assign(new Error('Choose Today or Long bet'), { status: 400 });
   let last = null;
   if (kind === 'long') {
@@ -81,8 +81,8 @@ function create({ kind, title, lastMatchAt, entries, premium, by, date: wanted }
   const expires = expiryFor(kind, date, last);
   if (expires <= new Date()) throw Object.assign(new Error('That time has already passed'), { status: 400 });
   return db.transaction(() => {
-    const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by, premium, starts_at, notified) VALUES (?,?,?,?,?,?,?,?,?)')
-      .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null, premium ? 1 : 0, startsAt ? startsAt.toISOString() : null, startsAt ? 0 : 1);
+    const { lastInsertRowid: id } = db.prepare('INSERT INTO posts (kind, title, date, last_match_at, expires_at, created_by, premium, free, starts_at, notified) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .run(kind, String(title || '').trim().slice(0, 80), date, last ? last.toISOString() : null, expires.toISOString(), by || null, premium ? 1 : 0, free ? 1 : 0, startsAt ? startsAt.toISOString() : null, startsAt ? 0 : 1);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
     db.prepare('INSERT INTO results (post_id, kind, title, date) VALUES (?,?,?,?)').run(id, kind, String(title || '').trim().slice(0, 80), date);
     return Number(id);
@@ -98,7 +98,7 @@ function createMany(days, by) {
   return db.transaction(() => days.map(d => create({ kind: 'daily', title: d.title, entries: d.entries, date: d.date, by })))();
 }
 
-function update(id, { title, lastMatchAt, entries, premium }) {
+function update(id, { title, lastMatchAt, entries, premium, free }) {
   const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(id);
   if (!post) throw Object.assign(new Error('Post not found'), { status: 404 });
   const rows = normaliseEntries(entries);
@@ -110,7 +110,7 @@ function update(id, { title, lastMatchAt, entries, premium }) {
     last = d.toISOString(); expires = expiryFor('long', post.date, d).toISOString();
   }
   db.transaction(() => {
-    db.prepare('UPDATE posts SET title = ?, last_match_at = ?, expires_at = ?, premium = ? WHERE id = ?').run(String(title ?? post.title).trim().slice(0, 80), last, expires, premium === undefined ? post.premium : (premium ? 1 : 0), id);
+    db.prepare('UPDATE posts SET title = ?, last_match_at = ?, expires_at = ?, premium = ?, free = ? WHERE id = ?').run(String(title ?? post.title).trim().slice(0, 80), last, expires, premium === undefined ? post.premium : (premium ? 1 : 0), free === undefined ? post.free : (free ? 1 : 0), id);
     db.prepare('UPDATE results SET title = ? WHERE post_id = ?').run(String(title ?? post.title).trim().slice(0, 80), id);
     db.prepare('DELETE FROM post_entries WHERE post_id = ?').run(id);
     for (const r of rows) db.prepare('INSERT INTO post_entries (post_id, platform, code, link, image_id) VALUES (?,?,?,?,?)').run(id, r.platform, r.code, r.link, r.image_id);
@@ -141,10 +141,10 @@ function active({ premium = true, scheduled = false } = {}) {
     : db.prepare('SELECT * FROM posts WHERE expires_at > ? AND (starts_at IS NULL OR starts_at <= ?) ORDER BY id DESC').all(now, now);
   return rows.map(p => {
     const rows = db.prepare('SELECT platform, code, link, image_id FROM post_entries WHERE post_id = ?').all(p.id);
-    const locked = !premium; // every code needs an active weekly pass
+    const locked = !premium && !p.free; // every code needs an active pass, except posts the admin marked free for everyone
     return {
       id: p.id, kind: p.kind, title: p.title, date: p.date, lastMatchAt: p.last_match_at, expiresAt: p.expires_at, createdAt: p.created_at,
-      premium: false, locked, startsAt: p.starts_at, scheduled: !!(p.starts_at && p.starts_at > now),
+      premium: false, free: !!p.free, locked, startsAt: p.starts_at, scheduled: !!(p.starts_at && p.starts_at > now),
       books: rows.map(e => e.platform),
       entries: locked ? {} : Object.fromEntries(rows.map(e => [e.platform, { code: e.code, link: e.link, imageId: e.image_id }])),
     };
@@ -152,7 +152,7 @@ function active({ premium = true, scheduled = false } = {}) {
 }
 
 // Is this image part of a premium post?
-const imageIsPremium = () => true; // every slip image is for subscribers
+const imageIsPremium = id => !db.prepare('SELECT 1 FROM post_entries e JOIN posts p ON p.id = e.post_id WHERE e.image_id = ? AND p.free = 1').get(id); // slip images need a pass unless the post is free
 
 // Re-applies the current expiry rule to daily posts already saved (e.g. after changing POST_EXPIRE_HOUR).
 function resync() {

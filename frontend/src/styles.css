@@ -1007,3 +1007,10 @@ html { background: #EAF1FF; }
 .install-x { position: absolute; top: 4px; right: 6px; background: none; border: 0; color: #8a97bd; font-size: .9rem; cursor: pointer; }
 .al-h { margin: 0 0 6px; font-family: var(--display); color: var(--navy); }
 #push-box { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+
+/* Share a win, free tag, game link */
+.share-win { flex: none; margin-left: 8px; padding: 4px 12px; border-radius: 99px; border: 1px solid #12A150; background: transparent; color: #0F7A33; font: inherit; font-weight: 800; font-size: .78rem; cursor: pointer; }
+.res-list li { flex-wrap: wrap; }
+.free-tag { font-style: normal; font-size: .62rem; font-weight: 800; letter-spacing: .06em; padding: 2px 6px; border-radius: 6px; background: #12A150; color: #fff; vertical-align: middle; }
+
+.menu-link { display: block; padding: 11px 10px; border-radius: 10px; font-weight: 600; text-decoration: none; color: inherit; }

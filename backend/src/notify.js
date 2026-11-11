@@ -120,4 +120,24 @@ async function renewals() {
   return { sent };
 }
 
-module.exports = { morning, codeAdded, postAdded, renewals };
+// Win-back: someone who paid before, whose pass ended 3 to 10 days ago and who has not come back, gets one friendly nudge
+// (with the admin's win-back promo code, if there is one running). Once per lapsed pass.
+async function winback() {
+  const promos = require('./promos');
+  const nowIso = new Date().toISOString(), from = new Date(Date.now() - 10 * 86400000).toISOString(), to = new Date(Date.now() - 3 * 86400000).toISOString();
+  const due = db.prepare(`SELECT * FROM users WHERE blocked = 0 AND premium_until IS NOT NULL AND premium_until >= ? AND premium_until <= ? AND premium_until < ?
+    AND (winback_notified IS NULL OR winback_notified != premium_until)
+    AND EXISTS (SELECT 1 FROM payments p WHERE p.user_id = users.id AND p.status = 'success')`).all(from, to, nowIso);
+  const promo = due.length ? promos.winbackCode() : null;
+  let sent = 0;
+  for (const u of due) {
+    const text = promo ? `We miss you at PawaOdds. Use code ${promo.code} for ${promo.percent}% off your next pass.` : 'We miss you at PawaOdds. Renew your pass to get every booking code again.';
+    let ok = await push.sendToUser(u.id, { title: 'We miss you', body: text, url: '/' });
+    if (u.telegram_chat_id && u.notify_codes && telegram.enabled() && await telegram.send(u.telegram_chat_id, `👋 ${h(text)}${footer()}`)) ok = 1;
+    db.prepare('UPDATE users SET winback_notified = ? WHERE id = ?').run(u.premium_until, u.id);
+    if (ok) sent++;
+  }
+  return { sent };
+}
+
+module.exports = { morning, codeAdded, postAdded, renewals, winback };

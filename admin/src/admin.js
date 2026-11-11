@@ -177,6 +177,7 @@ function composeHtml() {
           <span class="post-thumb" data-thumb="${esc(p.key)}">${img ? `<img src="${img}" alt=""><button type="button" class="link" data-img-clear="${esc(p.key)}">Remove</button>`
             : (e && e.imageId && img === undefined ? `<img data-existing="${esc(e.imageId)}" alt=""><button type="button" class="link" data-img-clear="${esc(p.key)}">Remove</button>` : '')}</span>
         </div></fieldset>`; }).join('')}</div>
+    <label class="chk"><input type="checkbox" name="free" ${ex && ex.free ? 'checked' : ''}> Free for everyone <small>(a teaser: anyone signed in can open this one without a pass)</small></label>
     <p class="form-error" role="alert"></p>
     <div class="code-save"><span></span><button class="add solid" type="submit">${post.editing ? 'Save changes' : 'Post'}</button></div>
   </form>`;
@@ -189,7 +190,7 @@ async function loadCodes() {
     const names = state.platforms.filter(b => p.entries[b.key]).map(b => esc(b.name)).join(', ');
     const when = (p.scheduled ? `<b class="sched-tag">Goes live ${esc(fmtWhen(p.startsAt))}</b> · ` : '') + (p.kind === 'long' ? `until the last match, ${esc(fmtWhen(p.lastMatchAt))}` : `removed ${esc(fmtWhen(p.expiresAt))}`);
     return `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(p.title || (p.kind === 'long' ? 'Long bet' : "Today's code"))}</h3>
-      <span>${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
+      <span>${p.free ? '<b class="sched-tag">FREE</b> · ' : ''}${p.kind === 'long' ? 'Long bet' : 'Today'} · ${names || 'no bookmakers'} · ${when}</span></div>
       <div class="adm-user-btns"><button class="add" data-post-edit="${p.id}">Edit</button><button class="add danger" data-post-del="${p.id}">Delete</button></div></article>`;
   }).join('') : '<div class="empty">Nothing posted yet. Users will see "not posted yet" until you add a code.</div>';
   postCache = r.posts;
@@ -201,6 +202,16 @@ async function loadCodes() {
       ${m.enabled ? '' : '<p class="form-error">Paystack is not connected. Add PAYSTACK_SECRET_KEY on the backend.</p>'}
       ${m.recent.length ? `<ul class="pay-list">${m.recent.map(x => `<li><span>${esc(x.phone)} · ${esc(x.plan)}${x.channel ? ' · ' + esc(x.channel.replace('_', ' ')) : ''}</span><b>${f(x.amount)}</b></li>`).join('')}</ul>` : '<p class="muted-inline">No payments yet.</p>'}</div>`;
   } catch { /* summary is optional */ }
+  let payHtml = '';
+  try {
+    const { payments } = await api('/api/admin/payments'), cur = (await api('/api/admin/premium')).currency;
+    const m = v => `${cur} ${(v / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`, pend = payments.filter(x => x.status !== 'success');
+    payHtml = `<h2 class="section-head">Payments</h2><p class="muted-inline">Paid but not unlocked? Unpaid attempts are re-checked with Paystack automatically every few minutes for 3 days. You can also check one now, or unlock it by hand once you have seen the money in your Paystack dashboard.</p>` +
+      (payments.length ? `<div class="code-card"><ul class="pay-list">${payments.slice(0, 40).map(x => `<li class="pay-row"><span>${esc(x.phone)} · ${esc(x.plan)}${x.promo_code ? ' · ' + esc(x.promo_code) : ''} · ${esc(ago(x.paid_at || x.created_at))}<br><small class="muted-inline">${esc(x.reference)}</small></span>
+        <span class="pay-right"><b>${m(x.amount)}</b> <i class="badge ${x.status === 'success' ? 'won' : 'lost'}">${x.status === 'success' ? 'Paid' : 'Not paid'}</i>
+        ${x.status === 'success' ? '' : `<button class="add" data-pay-check="${esc(x.reference)}">Check</button><button class="add danger" data-pay-unlock="${esc(x.reference)}">Unlock by hand</button>`}</span></li>`).join('')}</ul>
+        ${pend.length ? `<p class="muted-inline">${pend.length} not paid in the latest ${payments.length}.</p>` : ''}</div>` : '<div class="empty">No payment attempts yet.</div>');
+  } catch { /* payments are optional */ }
   let resHtml = '';
   try {
     const rr = (await api('/api/admin/results')).results;
@@ -223,12 +234,13 @@ async function loadCodes() {
         <label>Max uses<input name="maxUses" type="number" min="1" inputmode="numeric" placeholder="Unlimited"></label>
         <label>Expires<input name="expiresAt" type="date"></label></div>
         <fieldset class="promo-plans"><legend>Applies to</legend>${pr.plans.map(p => `<label><input type="checkbox" name="plan" value="${esc(p.key)}" checked> ${esc(p.name)}</label>`).join('')}</fieldset>
+        <label class="chk"><input type="checkbox" name="winback"> Use for win-back messages <small>(sent once to people whose pass ended 3 to 10 days ago)</small></label>
         <p class="form-error" id="promo-err"></p><button class="add solid" type="submit">Create promo code</button></form>` +
       (pr.promos.length ? pr.promos.map(x => `<article class="code-card post-row"><div class="code-card-head"><h3>${esc(x.code)} · ${x.percent}% off</h3>
-        <span>${x.used}${x.maxUses ? '/' + x.maxUses : ''} used · ${esc(fd(x.expiresAt))} · ${x.plans.length ? esc(x.plans.join(', ')) : 'all plans'}${x.active ? '' : ' · paused'}</span></div>
+        <span>${x.used}${x.maxUses ? '/' + x.maxUses : ''} used · ${esc(fd(x.expiresAt))} · ${x.plans.length ? esc(x.plans.join(', ')) : 'all plans'}${x.winback ? ' · win-back' : ''}${x.active ? '' : ' · paused'}</span></div>
         <div class="adm-user-btns"><button class="add" data-promo-toggle="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? 'Pause' : 'Resume'}</button><button class="add danger" data-promo-del="${x.id}">Delete</button></div></article>`).join('') : '<div class="empty">No promo codes yet.</div>');
   } catch { /* promos are optional */ }
-  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + money;
+  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + payHtml + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
@@ -283,7 +295,7 @@ document.addEventListener('submit', async e => {
     if (img) entry.image = img; else if (old && img === undefined) entry.keepImage = old;
     if (code || link || entry.image || entry.keepImage) entries[p.key] = entry;
   }
-  const body = { kind: post.kind, title: form.elements.title.value, entries };
+  const body = { kind: post.kind, title: form.elements.title.value, entries, free: form.elements.free.checked };
   if (post.kind === 'daily' && !post.editing && form.elements.date) body.date = form.elements.date.value;
   if (post.kind === 'long') {
     const v = form.elements.lastMatch.value;
@@ -461,7 +473,31 @@ document.addEventListener('click', async e => {
   catch (err) { toast(err.message); }
 });
 
+async function loadGrowth() {
+  const box = $('#adm-growth'); if (!box) return;
+  try {
+    const r = await api('/api/admin/analytics?days=' + (state.growthDays || 30)), f = r.funnel, cur = 'GHS';
+    const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '-', max = Math.max(1, ...r.daily.map(d => d.signups));
+    const steps = [['Signed up', f.signups], ['Opened the plan screen', f.sawPay], ['Started checkout', f.startedCheckout], ['Paid', f.paid]];
+    box.innerHTML = `<div class="record-wide"><div class="grow-head"><h3>Growth</h3><span class="chips">${[7, 30, 90].map(d => `<button type="button" class="add${(state.growthDays || 30) === d ? ' solid' : ''}" data-grow="${d}">${d} days</button>`).join('')}</span></div>
+      <p class="muted-inline">People who signed up in the last ${r.days} days, and how far they got.</p>
+      ${steps.map(([l, n]) => `<div class="fun-row"><span>${l}</span><div class="fun-bar"><i style="width:${f.signups ? Math.max(3, n / f.signups * 100) : 0}%"></i></div><b>${n}</b><small>${pct(n, f.signups)}</small></div>`).join('')}
+      <h4 class="grow-sub">New sign-ups per day</h4><div class="spark" role="img" aria-label="Sign-ups per day">${r.daily.map(d => `<i style="height:${Math.max(2, d.signups / max * 100)}%" title="${esc(d.d)}: ${d.signups} sign-ups, ${d.sales} sales"></i>`).join('')}</div>
+      <div class="grow-cols"><div><h4 class="grow-sub">Sales by plan</h4>${r.plans.length ? `<table>${r.plans.map(p => `<tr><td>${esc(p.plan)}</td><td>${p.n}</td><td>${cur} ${(p.a / 100).toLocaleString()}</td></tr>`).join('')}</table>` : '<p class="muted-inline">No sales yet.</p>'}</div>
+      <div><h4 class="grow-sub">Promo codes used</h4>${r.promos.length ? `<table>${r.promos.map(p => `<tr><td>${esc(p.code)}</td><td>${p.n}</td><td>${cur} ${(p.a / 100).toLocaleString()}</td></tr>`).join('')}</table>` : '<p class="muted-inline">None used.</p>'}</div></div>
+      <p class="muted-inline">Referrals: ${r.referrals.joined} joined with a code, ${r.referrals.bought} bought a pass.</p></div>`;
+  } catch (e) { box.innerHTML = ''; }
+}
+document.addEventListener('click', e => { const g = e.target.closest('[data-grow]'); if (g) { state.growthDays = Number(g.dataset.grow); loadGrowth(); } });
+document.addEventListener('click', async e => {
+  const c = e.target.closest('[data-pay-check]'), u = e.target.closest('[data-pay-unlock]');
+  try {
+    if (c) { c.disabled = true; const r = await api(`/api/admin/payments/${encodeURIComponent(c.dataset.payCheck)}/check`, { method: 'POST' }); toast(r.paid ? 'Paid. The pass is now unlocked.' : 'Paystack says it was not paid yet (' + r.state + ')'); loadCodes(); }
+    else if (u && confirm('Unlock this payment by hand? Only do this if you can see the money in your Paystack dashboard.')) { await api(`/api/admin/payments/${encodeURIComponent(u.dataset.payUnlock)}/unlock`, { method: 'POST' }); toast('Unlocked'); loadCodes(); }
+  } catch (x) { toast(x.message); loadCodes(); }
+});
 async function loadActivity() {
+  loadGrowth();
   let runs; try { runs = (await api('/api/admin/runs')).runs; } catch (e) { $('#adm-runs').innerHTML = empty('Could not load activity.', e.message); return; }
   try {
     const o = await api('/api/admin/overview');
@@ -695,7 +731,7 @@ document.addEventListener('submit', async e => {
   e.preventDefault();
   const f = e.target, fd = new FormData(f), err = $('#promo-err'); err.textContent = '';
   try {
-    await api('/api/admin/promos', { method: 'POST', body: { code: fd.get('code'), percent: fd.get('percent'), maxUses: fd.get('maxUses'), expiresAt: fd.get('expiresAt'), plans: fd.getAll('plan') } });
+    await api('/api/admin/promos', { method: 'POST', body: { code: fd.get('code'), percent: fd.get('percent'), maxUses: fd.get('maxUses'), expiresAt: fd.get('expiresAt'), plans: fd.getAll('plan'), winback: fd.get('winback') === 'on' } });
     toast('Promo code created'); loadCodes();
   } catch (x) { err.textContent = x.message; }
 });

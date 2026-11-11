@@ -107,6 +107,7 @@ module.exports = {
   telegramApi: env.TELEGRAM_API_BASE || 'https://api.telegram.org', // only changed for tests
   // Public address of the site, used for the "Open PawaOdds" link in messages.
   siteUrl: env.SITE_URL || '',
+  gameUrl: /^https:\/\//.test(env.GAME_URL || '') ? env.GAME_URL : '', // optional link to the separate Arena Picks game
 
   // Phone numbers listed here become admins (can re-run predictions from the site).
   adminPhones: (env.ADMIN_PHONES || '').split(',').map(s => normalizePhone(s)).filter(Boolean),

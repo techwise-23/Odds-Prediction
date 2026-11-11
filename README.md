@@ -185,3 +185,12 @@ Every user can pick their own referral code (a name, a number, 3-20 letters, num
 - **Phone alerts (PWA)**: the site is installable and can send web-push alerts for new codes and expiring passes. Keys are generated automatically and stored beside the database; to pin them set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and optionally `VAPID_SUBJECT` (e.g. `mailto:you@example.com`). Needs HTTPS. On iPhone users must first Add to Home Screen.
 - **Renewal reminders**: users whose pass ends within 24 h (5 h for daily passes) get an in-app banner, a push alert and a Telegram message. Buying while active adds the plan length after the current end.
 - **Users export**: Admin > Users > Download all users (CSV).
+
+## Payments safety net, free teaser, growth numbers, win-back, share card
+
+- **Late payments**: pending payments are re-checked with Paystack every 5 minutes for 3 days and unlock by themselves. Admin > Codes > Payments lists attempts with **Check** and **Unlock by hand** (logged in Activity; only use after seeing the money in Paystack).
+- **Free teaser**: tick "Free for everyone" on a booking-code post; anyone signed in can open it without a pass. It shows a FREE tag.
+- **Growth** (Admin > Activity): sign-up to plan screen to checkout to paid funnel, sign-ups per day, sales by plan, promo usage, referrals.
+- **Win-back**: people who paid before and whose pass ended 3 to 10 days ago get one push/Telegram message. Tick "Use for win-back messages" on a promo code to include it.
+- **Share a win**: a Share button on won results makes a branded picture (with the user's own referral code) to send to WhatsApp or Facebook.
+- **Game link**: set `GAME_URL` (https) on the backend to show a "Play Arena Picks" link in the user menu. The game is a separate site.

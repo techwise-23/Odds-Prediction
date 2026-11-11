@@ -93,7 +93,7 @@ async function startApp() {
   $('#auth-view').hidden = true; $('#app-view').hidden = false; document.body.classList.add('in-app');
   $('#avatar').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>';
   $('#menu-name').textContent = state.user.name;
-  state.telegram = !!me.telegram;
+  state.telegram = !!me.telegram; state.gameUrl = me.gameUrl || ''; gameLink();
   await loadPosts();
   checkReturn();
 }
@@ -311,7 +311,7 @@ function postCard(p, i) {
   return `<button type="button" class="ticket ${long ? 'is-long' : ''} ${vip ? 'is-vip' : ''} ${locked ? 'is-locked' : ''}" ${locked ? 'data-unlock' : `data-post="${p.id}"`} style="--i:${i}">
     <span class="stub">${ICON[locked ? 'lock' : vip ? 'vip' : p.kind]}<small>${label}</small></span>
     <span class="body">
-      <b class="t-title">${esc(p.title || (vip ? 'Premium slip' : long ? 'Long bet slip' : "Today's slip"))}</b>
+      <b class="t-title">${p.free ? '<i class="free-tag">FREE</i> ' : ''}${esc(p.title || (vip ? 'Premium slip' : long ? 'Long bet slip' : "Today's slip"))}</b>
       <span class="chips" aria-label="Available on">${books.map(b => `<i class="chip" title="${esc(b.name)}">${esc(initials(b.name))}</i>`).join('')}
         <em>${books.length} bookmaker${books.length === 1 ? '' : 's'}</em></span>
       ${long ? `<span class="track" role="img" aria-label="Time until the last match"><i style="width:${pct.toFixed(0)}%"></i></span>
@@ -476,7 +476,7 @@ function renderResults() {
       <div class="res-rate"><b>${r.rate === null ? '-' : r.rate + '%'}</b><span>Win rate, last ${r.days} days</span></div>
       <div class="res-tiles"><div><b>${r.won}</b><span>Won</span></div><div><b>${r.lost}</b><span>Lost</span></div><div><b>${r.void}</b><span>Void</span></div><div><b>${r.streak}</b><span>Winning run</span></div></div>
     </div>
-    ${r.items.length ? `<ul class="res-list">${r.items.map(x => `<li><span class="rl-main"><b>${esc(x.title || (x.kind === 'long' ? 'Long bet' : "Today's code"))}</b><small>${x.kind === 'long' ? 'Long bet' : 'Today'} · ${esc(day(x.date))}</small></span><span class="res-badge ${x.status}">${RES_LABEL[x.status]}</span></li>`).join('')}</ul>`
+    ${r.items.length ? `<ul class="res-list">${r.items.map(x => `<li><span class="rl-main"><b>${esc(x.title || (x.kind === 'long' ? 'Long bet' : "Today's code"))}</b><small>${x.kind === 'long' ? 'Long bet' : 'Today'} · ${esc(day(x.date))}</small></span><span class="res-badge ${x.status}">${RES_LABEL[x.status]}</span>${x.status === 'won' ? `<button type="button" class="share-win" data-share="${x.id}" aria-label="Share this win">Share</button>` : ''}</li>`).join('')}</ul>`
       : '<p class="muted">No results yet. They appear as soon as codes are settled.</p>'}
     <p class="fineprint">Results are marked by the PawaOdds team after the games finish. Past results do not guarantee future wins. 18+ only. Bet responsibly.</p>`;
 }
@@ -539,7 +539,7 @@ function openPremium() {
   const pr = state.premium;
   if (pr.active && !pr.endsSoon) { toast('You are subscribed. All codes are unlocked until ' + fmtDay(pr.until) + '.'); return; }
   if (!pr.enabled || !pr.plans.length) { toast('Subscriptions are not open yet. Check back soon.'); return; }
-  planPicker();
+  planPicker(); trackPayView();
   if (!premiumDialog.open) premiumDialog.showModal();
 }
 async function startPayment() {
@@ -648,3 +648,47 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && st
 
 // ---------- boot ----------
 api('/api/me').then(startApp).catch(() => showAuth());
+
+
+// ---------- share a win ----------
+// Draws a branded picture of the win (nothing but the title, date and the person's own referral code) and shares it.
+async function winCard(item) {
+  const W = 1080, H = 1080, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), r = state.results || {};
+  const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0B2466'); bg.addColorStop(1, '#06143A'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(245,179,1,.10)'; g.beginPath(); g.arc(W - 120, 160, 420, 0, 7); g.fill();
+  try { const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = 'logo.png'; }); g.drawImage(img, 70, 60, 150, 150); } catch { /* the card still works without the logo */ }
+  g.textBaseline = 'alphabetic'; g.fillStyle = '#fff'; g.font = '800 64px system-ui, sans-serif'; g.fillText('Pawa', 250, 150); const w = g.measureText('Pawa').width;
+  g.fillStyle = '#F5B301'; g.fillText('Odds', 250 + w, 150); g.fillStyle = '#9FB0E6'; g.font = '600 30px system-ui, sans-serif'; g.fillText('Play Smart, Win Big', 250, 196);
+  g.fillStyle = '#12A150'; g.beginPath(); g.roundRect(70, 330, 330, 120, 60); g.fill();
+  g.fillStyle = '#fff'; g.font = '900 64px system-ui, sans-serif'; g.fillText('WON ✓', 110, 410);
+  g.font = '800 76px system-ui, sans-serif'; g.fillStyle = '#fff';
+  const title = item.title || (item.kind === 'long' ? 'Long bet' : "Today's code"), words = title.split(' '), lines = []; let line = '';
+  for (const wd of words) { if (g.measureText((line + ' ' + wd).trim()).width > W - 140) { lines.push(line); line = wd; } else line = (line + ' ' + wd).trim(); } lines.push(line);
+  lines.slice(0, 3).forEach((l, i) => g.fillText(l, 70, 580 + i * 92));
+  g.fillStyle = '#9FB0E6'; g.font = '600 38px system-ui, sans-serif';
+  g.fillText(new Date(item.date + 'T12:00:00').toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' }), 70, 600 + Math.min(lines.length, 3) * 92);
+  if (r.rate != null) { g.fillStyle = '#F5B301'; g.font = '800 44px system-ui, sans-serif'; g.fillText(`${r.rate}% win rate, last ${r.days} days`, 70, 880); }
+  const code = state.refer && state.refer.code;
+  g.fillStyle = '#fff'; g.font = '700 40px system-ui, sans-serif'; g.fillText(location.host, 70, 980);
+  if (code) { g.fillStyle = '#F5B301'; g.font = '700 34px system-ui, sans-serif'; g.fillText('Join with my code ' + code, 70, 1030); }
+  return new Promise(ok => c.toBlob(ok, 'image/png'));
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-share]'); if (!b) return;
+  const item = state.results && state.results.items.find(x => x.id === Number(b.dataset.share)); if (!item) return;
+  b.disabled = true;
+  try {
+    const blob = await winCard(item), file = new File([blob], 'pawaodds-win.png', { type: 'image/png' });
+    const code = state.refer && state.refer.code, text = `Another win on PawaOdds ✅ ${location.origin}${code ? '/?ref=' + encodeURIComponent(code) : ''}`;
+    if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text });
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pawaodds-win.png'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Picture saved. Share it on WhatsApp or Facebook.'); }
+  } catch (err) { if (err && err.name !== 'AbortError') toast('Could not make the picture'); }
+  b.disabled = false;
+});
+
+// ---------- tell the server the plan screen was opened (for the funnel) ----------
+function trackPayView() { api('/api/track', { method: 'POST', body: { kind: 'pay_view' } }).catch(() => { /* not important */ }); }
+
+// ---------- link to the separate Arena Picks game (shown only when GAME_URL is set on the backend) ----------
+function gameLink() { const a = $('#game-open'); if (a) { a.hidden = !state.gameUrl; if (state.gameUrl) a.href = state.gameUrl; } }

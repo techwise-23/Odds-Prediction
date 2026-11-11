@@ -75,7 +75,7 @@ const postErr = (res, e) => res.status(e.status || 500).json({ error: e.status ?
 router.get('/posts', adminAuth, (req, res) => { posts.cleanup(); res.json({ posts: posts.active({ scheduled: true }), platforms: config.platforms.map(({ key, name, url }) => ({ key, name, url })), storage: { persistent: config.persistentStorage } }); });
 router.post('/posts', adminAuth, (req, res) => {
   try {
-    const id = posts.create({ kind: req.body.kind, title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, date: req.body.date, by: displayPhone(req.user.phone) });
+    const id = posts.create({ kind: req.body.kind, title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, free: !!req.body.free, date: req.body.date, by: displayPhone(req.user.phone) });
     settings.log(displayPhone(req.user.phone), `Posted ${req.body.kind === 'long' ? 'long bet' : "today's"} booking codes`);
     const post = posts.active().find(p => p.id === id); // a future day's post is announced when it goes live
     if (post) notify.postAdded(post).catch(e => console.error('notify:', e.message));
@@ -92,14 +92,27 @@ router.post('/posts/bulk', adminAuth, (req, res) => {
   } catch (e) { postErr(res, e); }
 });
 router.put('/posts/:id', adminAuth, (req, res) => {
-  try { posts.update(Number(req.params.id), { title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries}); res.json({ ok: true }); }
+  try { posts.update(Number(req.params.id), { title: req.body.title, lastMatchAt: req.body.lastMatchAt, entries: req.body.entries, free: !!req.body.free }); settings.log(displayPhone(req.user.phone), 'Edited a booking-code post', req.body.free ? 'free for everyone' : ''); res.json({ ok: true }); }
   catch (e) { postErr(res, e); }
 });
+router.get('/payments', adminAuth, (req, res) => res.json({ payments: require('../premium').listPayments({ status: String(req.query.status || '') }) }));
+router.post('/payments/:reference/check', adminAuth, async (req, res) => {
+  try { const r = await require('../premium').verify(req.params.reference); res.json({ paid: r.paid, state: r.state || (r.paid ? 'success' : 'pending') }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+router.post('/payments/:reference/unlock', adminAuth, (req, res) => {
+  try {
+    const p = require('../premium').manualUnlock(req.params.reference);
+    settings.log(displayPhone(req.user.phone), 'Unlocked a payment by hand', `${req.params.reference} (${displayPhone(db.prepare('SELECT phone FROM users WHERE id = ?').get(p.user_id).phone)})`);
+    res.json({ ok: true });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+router.get('/analytics', adminAuth, (req, res) => res.json(require('../analytics').report(req.query.days)));
 router.get('/premium', adminAuth, (req, res) => res.json(require('../premium').summary()));
 const results = require('../results');
 router.get('/results', adminAuth, (req, res) => res.json({ results: results.listAll() }));
 router.put('/results/:id', adminAuth, (req, res) => {
-  try { results.settle(Number(req.params.id), String(req.body.status || '')); res.json({ ok: true }); }
+  try { results.settle(Number(req.params.id), String(req.body.status || '')); settings.log(displayPhone(req.user.phone), 'Marked a result ' + String(req.body.status), '#' + Number(req.params.id)); res.json({ ok: true }); }
   catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 router.delete('/posts/:id', adminAuth, (req, res) => {
@@ -293,12 +306,12 @@ router.get('/promos', adminAuth, (req, res) => res.json({ promos: promos.list(),
 router.post('/promos', adminAuth, (req, res) => {
   try {
     promos.create(req.body || {}, config.premiumPlans.map(p => p.key));
-    settings.log(displayPhone(req.user.phone), 'Created a promo code', String(req.body.code || '').trim());
+    settings.log(displayPhone(req.user.phone), 'Created a promo code', `${String(req.body.code || '').trim()} (${Number(req.body.percent)}% off${req.body.winback ? ', win-back' : ''})`);
     res.json({ ok: true });
   } catch (e) { promoErr(res, e); }
 });
-router.put('/promos/:id/active', adminAuth, (req, res) => { try { promos.setActive(Number(req.params.id), !!req.body.active); res.json({ ok: true }); } catch (e) { promoErr(res, e); } });
-router.delete('/promos/:id', adminAuth, (req, res) => { try { promos.remove(Number(req.params.id)); res.json({ ok: true }); } catch (e) { promoErr(res, e); } });
+router.put('/promos/:id/active', adminAuth, (req, res) => { try { promos.setActive(Number(req.params.id), !!req.body.active); settings.log(displayPhone(req.user.phone), req.body.active ? 'Resumed a promo code' : 'Paused a promo code', '#' + Number(req.params.id)); res.json({ ok: true }); } catch (e) { promoErr(res, e); } });
+router.delete('/promos/:id', adminAuth, (req, res) => { try { promos.remove(Number(req.params.id)); settings.log(displayPhone(req.user.phone), 'Deleted a promo code', '#' + Number(req.params.id)); res.json({ ok: true }); } catch (e) { promoErr(res, e); } });
 
 // ---------- users: download as a spreadsheet ----------
 router.get('/users.csv', adminAuth, (req, res) => {

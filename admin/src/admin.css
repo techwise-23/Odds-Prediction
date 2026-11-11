@@ -191,3 +191,11 @@ body.admin-page .subnav { top: calc(62px + env(safe-area-inset-top)); }
 .promo-plans label { display: flex; align-items: center; gap: 6px; flex-direction: row; }
 #adm-csv { margin: 0 0 10px; }
 .promo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .promo-grid label { display: grid; gap: 4px; font-size: .8rem; min-width: 0; } .promo-grid input { min-width: 0; box-sizing: border-box; width: 100%; }
+
+.chk { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0; font-size: .9rem; } .chk input { margin-top: 3px; } .chk small { opacity: .75; }
+.pay-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; } .pay-right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.grow-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; } .grow-head .chips { display: flex; gap: 6px; }
+.fun-row { display: grid; grid-template-columns: 1.3fr 2fr auto auto; gap: 8px; align-items: center; margin: 8px 0; font-size: .85rem; } .fun-row small { opacity: .7; min-width: 36px; text-align: right; }
+.fun-bar { height: 10px; border-radius: 6px; background: rgba(255,255,255,.12); overflow: hidden; } .fun-bar i { display: block; height: 100%; background: linear-gradient(90deg, #E0A100, #FFD95A); }
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 70px; } .spark i { flex: 1; background: #FFD95A; border-radius: 2px 2px 0 0; min-width: 2px; }
+.grow-sub { margin: 14px 0 6px; font-size: .85rem; opacity: .85; } .grow-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .grow-cols table { font-size: .85rem; }

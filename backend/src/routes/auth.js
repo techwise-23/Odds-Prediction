@@ -40,7 +40,7 @@ router.post('/login', limited, (req, res) => {
 });
 
 router.post('/logout', (req, res) => { clearSession(res, USER_COOKIE); res.json({ ok: true }); });
-router.get('/me', auth, (req, res) => res.json({ user: publicUser(req.user), demo: !config.apiKey, platforms: config.platforms, telegram: telegram.enabled() }));
+router.get('/me', auth, (req, res) => res.json({ user: publicUser(req.user), demo: !config.apiKey, platforms: config.platforms, telegram: telegram.enabled(), gameUrl: config.gameUrl }));
 router.put('/me/platform', auth, (req, res) => {
   const platform = String(req.body.platform || '');
   if (!config.platforms.some(p => p.key === platform)) return res.status(400).json({ error: 'Unknown bookmaker' });
@@ -57,6 +57,12 @@ router.post('/push/subscribe', auth, (req, res) => {
   catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 router.post('/push/unsubscribe', auth, (req, res) => { push.unsubscribe(req.user.id, req.body && req.body.endpoint); res.json({ ok: true }); });
+
+// The apps report a few funnel steps (like opening the plan screen).
+router.post('/track', auth, limited, (req, res) => {
+  try { require('../analytics').track(req.user.id, String(req.body && req.body.kind || '')); res.json({ ok: true }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 
 // ---------- Referrals ----------
 router.get('/referrals', auth, (req, res) => res.json(referrals.summary(req.user.id)));

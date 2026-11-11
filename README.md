@@ -193,4 +193,4 @@ Every user can pick their own referral code (a name, a number, 3-20 letters, num
 - **Growth** (Admin > Activity): sign-up to plan screen to checkout to paid funnel, sign-ups per day, sales by plan, promo usage, referrals.
 - **Win-back**: people who paid before and whose pass ended 3 to 10 days ago get one push/Telegram message. Tick "Use for win-back messages" on a promo code to include it.
 - **Share a win**: a Share button on won results makes a branded picture (with the user's own referral code) to send to WhatsApp or Facebook.
-- **Game link**: set `GAME_URL` (https) on the backend to show a "Play Arena Picks" link in the user menu. The game is a separate site.
+- **Arena Picks**: the Race and Spin game lives inside the app (`frontend/src/arena.html`) and opens from a card on the dashboard. It uses **play coins only**: no top-up, exchange or withdrawal. Coins and history are saved in the player's browser. Online multiplayer is not included (it needs its own game server).

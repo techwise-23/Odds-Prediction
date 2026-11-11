@@ -93,7 +93,7 @@ async function startApp() {
   $('#auth-view').hidden = true; $('#app-view').hidden = false; document.body.classList.add('in-app');
   $('#avatar').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>';
   $('#menu-name').textContent = state.user.name;
-  state.telegram = !!me.telegram; state.gameUrl = me.gameUrl || ''; gameLink();
+  state.telegram = !!me.telegram; 
   await loadPosts();
   checkReturn();
 }
@@ -364,6 +364,7 @@ function renderPosts() {
     </section>
     <section class="sect long"><header><span class="sect-ico">${SI.bars}</span><h2>Long Bet Booking Code</h2></header>
       <div class="tickets">${long.length ? long.map(p => postCard(p, i++)).join('') : ghostTicket('long')}</div></section>
+    ${arenaTile()}
     ${resultsPanel()}
     ${referPanel()}
     ${installCard()}
@@ -690,5 +691,7 @@ document.addEventListener('click', async e => {
 // ---------- tell the server the plan screen was opened (for the funnel) ----------
 function trackPayView() { api('/api/track', { method: 'POST', body: { kind: 'pay_view' } }).catch(() => { /* not important */ }); }
 
-// ---------- link to the separate Arena Picks game (shown only when GAME_URL is set on the backend) ----------
-function gameLink() { const a = $('#game-open'); if (a) { a.hidden = !state.gameUrl; if (state.gameUrl) a.href = state.gameUrl; } }
+// ---------- Arena Picks (the play-coins game, arena.html) ----------
+function arenaTile() {
+  return `<a class="arena-tile" href="arena.html"><span class="arena-ico" aria-hidden="true">🏁🎡</span><span class="arena-txt"><b>Arena Picks</b><small>Race and Spin games with free play coins. Daily bonus inside.</small></span><span class="get">Play<i aria-hidden="true">›</i></span></a>`;
+}

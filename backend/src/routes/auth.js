@@ -40,7 +40,7 @@ router.post('/login', limited, (req, res) => {
 });
 
 router.post('/logout', (req, res) => { clearSession(res, USER_COOKIE); res.json({ ok: true }); });
-router.get('/me', auth, (req, res) => res.json({ user: publicUser(req.user), demo: !config.apiKey, platforms: config.platforms, telegram: telegram.enabled(), gameUrl: config.gameUrl }));
+router.get('/me', auth, (req, res) => res.json({ user: publicUser(req.user), demo: !config.apiKey, platforms: config.platforms, telegram: telegram.enabled() }));
 router.put('/me/platform', auth, (req, res) => {
   const platform = String(req.body.platform || '');
   if (!config.platforms.some(p => p.key === platform)) return res.status(400).json({ error: 'Unknown bookmaker' });

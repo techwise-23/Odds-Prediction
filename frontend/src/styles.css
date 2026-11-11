@@ -1013,4 +1013,7 @@ html { background: #EAF1FF; }
 .res-list li { flex-wrap: wrap; }
 .free-tag { font-style: normal; font-size: .62rem; font-weight: 800; letter-spacing: .06em; padding: 2px 6px; border-radius: 6px; background: #12A150; color: #fff; vertical-align: middle; }
 
-.menu-link { display: block; padding: 11px 10px; border-radius: 10px; font-weight: 600; text-decoration: none; color: inherit; }
+
+.arena-tile { display: flex; align-items: center; gap: 12px; margin: 14px 16px; padding: 14px; border-radius: 18px; text-decoration: none; color: #fff; background: radial-gradient(circle at 90% 20%, rgba(245,179,1,.35), transparent 55%), linear-gradient(135deg, #0B2466, #08080d); border: 1px solid rgba(245,179,1,.5); box-shadow: 0 8px 22px rgba(11,36,102,.25); }
+.arena-ico { font-size: 1.7rem; letter-spacing: -4px; flex: none; }
+.arena-txt { display: grid; flex: 1; min-width: 0; } .arena-txt b { font-size: 1.05rem; color: #F5B301; } .arena-txt small { color: #C9D4F5; font-size: .8rem; }

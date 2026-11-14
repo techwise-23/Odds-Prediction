@@ -47,6 +47,7 @@
           <button role="tab" data-sub="overview" hidden><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V11h-6zM14 8h6V4h-6zM4 20h6v-4H4z"/></svg>Overview</button>
           <button role="tab" data-sub="codes"><svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4zM10 8v8"/></svg>Codes<b id="adm-codes-badge" class="count" hidden></b></button>
           <button role="tab" data-sub="users"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.6-3.4 3-5 5.5-5s4.9 1.6 5.5 5M16 5.6a3 3 0 0 1 0 5.8M17.5 14.3c1.7.5 2.7 2 3 4.7"/></svg>Users</button>
+          <button role="tab" data-sub="arena"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l5 3"/></svg>Arena<b id="adm-arena-badge" class="count" hidden></b></button>
           <button role="tab" data-sub="activity"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Activity</button>
           <button role="tab" data-sub="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Settings</button>
         </div>
@@ -81,6 +82,8 @@
           <p class="muted">Everything here is saved on the server and takes effect straight away. A value saved here replaces the one in your server settings until you reset it.</p>
           <div id="adm-settings"></div>
         </div>
+
+        <div data-sub-panel="arena" id="adm-arena" hidden></div>
 
         <div data-sub-panel="activity" hidden>
           <div class="hud adm-actions">

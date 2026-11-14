@@ -212,18 +212,6 @@ async function loadCodes() {
         ${x.status === 'success' ? '' : `<button class="add" data-pay-check="${esc(x.reference)}">Check</button><button class="add danger" data-pay-unlock="${esc(x.reference)}">Unlock by hand</button>`}</span></li>`).join('')}</ul>
         ${pend.length ? `<p class="muted-inline">${pend.length} not paid in the latest ${payments.length}.</p>` : ''}</div>` : '<div class="empty">No payment attempts yet.</div>');
   } catch { /* payments are optional */ }
-  let wdHtml = '';
-  try {
-    const wd = await api('/api/admin/withdrawals');
-    if (wd.enabled) {
-      const cur = 'GHS', m = v => `${cur} ${(v / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, open = wd.withdrawals.filter(x => ['pending', 'approved', 'processing'].includes(x.status));
-      wdHtml = `<h2 class="section-head">Arena withdrawals</h2><p class="muted-inline">${wd.method === 'manual' ? 'Approve a request, send the money to the number shown, then press Mark paid.' : 'Approving a request sends the money to the player automatically through Paystack.'} Check the name matches the number before approving. Rejecting returns the cash to the player.</p>` +
-        (wd.withdrawals.length ? wd.withdrawals.slice(0, 30).map(x => `<article class="code-card post-row"><div class="code-card-head"><h3>${m(x.net)} <small>(${m(x.gross)} less ${m(x.fee)} fee)</small></h3>
-          <span>${esc(x.full_name || 'no name')} · ${esc(x.number)} · ${esc(x.network)} · born ${esc(x.dob || '?')} · ${esc(ago(x.created_at))}<br>Bought ${(x.bought || 0).toLocaleString()} coins, played ${(x.wagered || 0).toLocaleString()} · <b>${esc(x.status)}</b>${x.note ? ' · ' + esc(x.note) : ''}</span></div>
-          <div class="adm-user-btns">${x.status === 'pending' ? `<button class="add solid" data-wd="approve" data-id="${x.id}">Approve</button><button class="add danger" data-wd="reject" data-id="${x.id}">Reject</button>` : ''}${x.status === 'approved' ? `<button class="add solid" data-wd="paid" data-id="${x.id}">Mark paid</button>` : ''}</div></article>`).join('') : '<div class="empty">No withdrawal requests yet.</div>') +
-        (open.length ? `<p class="muted-inline">${open.length} waiting for you.</p>` : '');
-    }
-  } catch { /* optional */ }
   let resHtml = '';
   try {
     const rr = (await api('/api/admin/results')).results;
@@ -252,7 +240,7 @@ async function loadCodes() {
         <span>${x.used}${x.maxUses ? '/' + x.maxUses : ''} used · ${esc(fd(x.expiresAt))} · ${x.plans.length ? esc(x.plans.join(', ')) : 'all plans'}${x.winback ? ' · win-back' : ''}${x.active ? '' : ' · paused'}</span></div>
         <div class="adm-user-btns"><button class="add" data-promo-toggle="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? 'Pause' : 'Resume'}</button><button class="add danger" data-promo-del="${x.id}">Delete</button></div></article>`).join('') : '<div class="empty">No promo codes yet.</div>');
   } catch { /* promos are optional */ }
-  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + payHtml + wdHtml + money;
+  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + payHtml + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
@@ -348,6 +336,7 @@ function setSub(sub) {
   if (sub === 'overview') loadOverview();
   if (sub === 'codes') loadCodes();
   if (sub === 'users') loadUsers();
+  if (sub === 'arena') loadArena();
   if (sub === 'activity') loadActivity();
   if (sub === 'settings') loadSettings();
 }
@@ -769,5 +758,21 @@ document.addEventListener('click', async e => {
   if (note === null) return;
   if (act === 'approve' && !confirm('Approve this withdrawal?')) return;
   try { b.disabled = true; await api(`/api/admin/withdrawals/${b.dataset.id}/${act}`, { method: 'POST', body: { note } }); toast('Done'); } catch (x) { toast(x.message); }
-  loadCodes();
+  loadArena();
 });
+
+async function loadArena() {
+  const box = $('#adm-arena');
+  let d, wd; try { [d, wd] = await Promise.all([api('/api/admin/arena'), api('/api/admin/withdrawals')]); } catch (e) { box.innerHTML = empty('Could not load Arena Picks.', e.message); return; }
+  const m = v => `${d.currency} ${(v / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, n = v => Number(v || 0).toLocaleString(), s = d.stats;
+  const badge = $('#adm-arena-badge'); if (badge) { badge.hidden = !d.pendingWithdrawals; badge.textContent = d.pendingWithdrawals; }
+  const stats = `<div class="adm-grid">${admStat('Players', n(s.players), n(s.active7) + ' played this week')}${admStat('Coins sold', m(s.sold), n(s.orders) + ' paid orders · ' + m(s.sold7) + ' last 7 days')}${admStat('Rounds played', n(s.rounds), n(s.staked) + ' coins staked')}${admStat('Players net', n(s.playersNet) + ' coins', s.playersNet < 0 ? 'house is ahead' : 'players are ahead', s.playersNet < 0 ? 'good' : '')}${admStat('Coins in wallets', n(s.coinsHeld), 'cash held ' + m(s.cashHeld))}${admStat('Paid out', m(s.withdrawnPaid), d.cashout.enabled ? 'cash-out is ON (' + d.cashout.method + ')' : 'cash-out is OFF')}</div>`;
+  const wdList = !d.cashout.enabled ? '<p class="muted-inline">Cash-out is switched off. To let players convert coins and withdraw, set <b>ARENA_CASHOUT=on</b> on the backend service in Railway and redeploy. Withdrawal requests will then appear here for you to approve.</p>' :
+    `<p class="muted-inline">${wd.method === 'manual' ? 'Approve a request, send the money to the number shown, then press Mark paid.' : 'Approving a request sends the money to the player automatically through Paystack.'} Check the name matches the number before approving. Rejecting returns the cash to the player.</p>` +
+    (wd.withdrawals.length ? wd.withdrawals.slice(0, 30).map(x => `<article class="code-card post-row"><div class="code-card-head"><h3>${m(x.net)} <small>(${m(x.gross)} less ${m(x.fee)} fee)</small></h3>
+      <span>${esc(x.full_name || 'no name')} · ${esc(x.number)} · ${esc(x.network)} · born ${esc(x.dob || '?')} · ${esc(ago(x.created_at))}<br>Bought ${n(x.bought)} coins, played ${n(x.wagered)} · <b>${esc(x.status)}</b>${x.note ? ' · ' + esc(x.note) : ''}</span></div>
+      <div class="adm-user-btns">${x.status === 'pending' ? `<button class="add solid" data-wd="approve" data-id="${x.id}">Approve</button><button class="add danger" data-wd="reject" data-id="${x.id}">Reject</button>` : ''}${x.status === 'approved' ? `<button class="add solid" data-wd="paid" data-id="${x.id}">Mark paid</button>` : ''}</div></article>`).join('') : '<div class="empty">No withdrawal requests yet.</div>');
+  const orders = d.orders.length ? `<div class="wrap"><table><tr><th>When</th><th>Player</th><th>Paid</th><th>Coins</th><th>Status</th></tr>${d.orders.map(o => `<tr><td>${esc(ago(o.created_at))}</td><td>${esc(o.phone)}</td><td>${m(o.amount)}</td><td>${n(o.coins)}</td><td>${esc(o.status)}</td></tr>`).join('')}</table></div>` : '<div class="empty">No coin purchases yet.</div>';
+  const players = d.players.length ? `<div class="wrap"><table><tr><th>Player</th><th>Coins</th><th>Bought</th><th>Played</th><th>Net</th></tr>${d.players.map(p => `<tr><td>${esc(p.phone)}</td><td>${n(p.coins)}</td><td>${n(p.bought)}</td><td>${n(p.wagered)}</td><td>${n(p.net)}</td></tr>`).join('')}</table></div>` : '<div class="empty">No players yet.</div>';
+  box.innerHTML = `<h2 class="section-head">Arena Picks</h2>${stats}<h2 class="section-head">Withdrawals</h2>${wdList}<h2 class="section-head">Coin purchases</h2>${orders}<h2 class="section-head">Top players by coins played</h2>${players}`;
+}

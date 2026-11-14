@@ -108,6 +108,19 @@ router.post('/payments/:reference/unlock', adminAuth, (req, res) => {
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 router.get('/analytics', adminAuth, (req, res) => res.json(require('../analytics').report(req.query.days)));
+router.get('/arena', adminAuth, (req, res) => {
+  const q = (sql, ...a) => db.prepare(sql).get(...a), all = (sql, ...a) => db.prepare(sql).all(...a);
+  const rev = q("SELECT COALESCE(SUM(amount),0) a, COUNT(*) n FROM arena_orders WHERE status = 'success'"), rev7 = q("SELECT COALESCE(SUM(amount),0) a FROM arena_orders WHERE status = 'success' AND paid_at >= datetime('now','-7 days')").a;
+  const rounds = q('SELECT COUNT(*) n, COALESCE(SUM(stake),0) staked, COALESCE(SUM(net),0) net FROM arena_rounds');
+  const wd = q("SELECT COALESCE(SUM(net),0) paid, COUNT(*) n FROM arena_withdrawals WHERE status = 'paid'"), pend = q("SELECT COUNT(*) n FROM arena_withdrawals WHERE status IN ('pending','approved','processing')").n;
+  res.json({
+    cashout: { enabled: config.arena.cashout.enabled, method: config.arena.cashout.method }, currency: config.paystack.currency, pendingWithdrawals: pend,
+    stats: { players: q('SELECT COUNT(*) n FROM arena_wallets').n, active7: q("SELECT COUNT(DISTINCT user_id) n FROM arena_rounds WHERE created_at >= datetime('now','-7 days')").n,
+      sold: rev.a, orders: rev.n, sold7: rev7, rounds: rounds.n, staked: rounds.staked, playersNet: rounds.net, coinsHeld: q('SELECT COALESCE(SUM(coins),0) c FROM arena_wallets').c, cashHeld: q('SELECT COALESCE(SUM(cash),0) c FROM arena_wallets').c, withdrawnPaid: wd.paid },
+    orders: all("SELECT o.reference, o.amount, o.coins, o.status, o.created_at, u.phone FROM arena_orders o JOIN users u ON u.id = o.user_id ORDER BY o.rowid DESC LIMIT 20"),
+    players: all("SELECT u.phone, w.coins, w.cash, w.bought, w.wagered, (SELECT COALESCE(SUM(net),0) FROM arena_rounds r WHERE r.user_id = w.user_id) net FROM arena_wallets w JOIN users u ON u.id = w.user_id ORDER BY w.wagered DESC LIMIT 15"),
+  });
+});
 router.get('/withdrawals', adminAuth, (req, res) => res.json({ enabled: config.arena.cashout.enabled, method: config.arena.cashout.method, withdrawals: require('../arena').listWithdrawals(String(req.query.status || '')) }));
 const wdRoute = (name, label, fn) => router.post('/withdrawals/:id/' + name, adminAuth, async (req, res) => {
   try { const r = await fn(Number(req.params.id), req); settings.log(displayPhone(req.user.phone), label, '#' + Number(req.params.id)); res.json({ ok: true, ...r }); }

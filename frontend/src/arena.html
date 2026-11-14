@@ -89,14 +89,14 @@ th{color:var(--ac)}.v:not(.pos):not(.neg){color:var(--ac2)}
 .back{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:60;padding:7px 14px;border-radius:99px;background:var(--card);color:var(--ac);border:1px solid var(--ac);font-weight:800;font-size:13px;text-decoration:none}
 </style></head><body><a class="back" href="/">← PawaOdds</a><script src="config.js"></script><main>
 <header><h1>Arena <em>Picks</em></h1></header>
-<nav class="tabs" id="tabs"><button class="tab on" data-t="hm"><span class="ic">🏠</span><span>Home</span></button><button class="tab" data-t="rc"><span class="ic">🏁</span><span>Race</span></button><button class="tab" data-t="sp"><span class="ic">🎡</span><span>Spin</span></button><button class="tab" data-t="wl"><span class="ic">🪙</span><span>Coins</span></button><button class="tab" data-t="lb"><span class="ic">🏆</span><span>Leaders</span></button><button class="tab" data-t="hi"><span class="ic">📜</span><span>History</span></button><button class="tab" data-t="se"><span class="ic">⚙️</span><span>Settings</span></button></nav>
+<nav class="tabs" id="tabs"><button class="tab on" data-t="hm"><span class="ic">🏠</span><span>Home</span></button><button class="tab" data-t="rc"><span class="ic">🏁</span><span>Race</span></button><button class="tab" data-t="sp"><span class="ic">🎡</span><span>Spin</span></button><button class="tab" data-t="wl"><span class="ic">💰</span><span>Wallet</span></button><button class="tab" data-t="lb"><span class="ic">🏆</span><span>Leaders</span></button><button class="tab" data-t="hi"><span class="ic">📜</span><span>History</span></button><button class="tab" data-t="se"><span class="ic">⚙️</span><span>Settings</span></button></nav>
 
-<section class="pane on" id="hm"><div class="card bn" id="bn"></div><div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div class="grid" id="hb" style="flex:1;min-width:240px;margin:0"></div><button class="btn" data-t="wl">🪙 My coins</button></div>
+<section class="pane on" id="hm"><div class="card bn" id="bn"></div><div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div class="grid" id="hb" style="flex:1;min-width:240px;margin:0"></div><button class="btn" data-t="wl">💰 Open wallet</button></div>
 <div class="two">
 <div class="card gc"><h3>🏁 Race</h3><p class="note" style="margin:0 0 12px">Pick Car A, Car B or Draw and watch the race.</p><button class="btn" data-t="rc">Play Race</button></div>
 <div class="card gc s"><h3>🎡 Spin</h3><p class="note" style="margin:0 0 12px">Bet on your colours and spin the wheel.</p><button class="btn" data-t="sp">Play Spin</button></div></div>
 <p class="note">Your bets and results are in the History tab.</p>
-<div class="card" style="border-left:4px solid var(--ac)"><b>Play coins only.</b> <span class="note" style="display:inline">Arena Picks is a free game for fun. Coins have no cash value: they cannot be bought, exchanged or withdrawn. 18+ only.</span></div></section>
+<div class="card" style="border-left:4px solid var(--ac)"><b>Play coins only.</b> <span class="note" style="display:inline">Arena Picks is a free game for fun. The wallet is a demo: no real money moves and coins have no cash value. 18+ only.</span></div></section>
 
 <section class="pane" id="rc"><iframe class="gf" id="fr" title="Race game" srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;
@@ -1797,11 +1797,15 @@ $(&#x27;snd&#x27;).onclick=()=&gt;{SND=!SND;$(&#x27;snd&#x27;).textContent=SND?&
 <section class="pane" id="lb"><div class="chips" id="lbc"></div><div class="card"><div class="wrap"><table id="lbt"></table></div></div></section>
 <section class="pane" id="hi"><div class="grid" id="hk"></div><div class="chips" id="hf"></div><div class="card"><div class="wrap"><table id="ht"></table></div><p class="note">Your own bets from the Race and Spin tabs, saved in this browser.</p></div></section>
 <section class="pane" id="se"><div class="card"><h2>Theme</h2><div class="chips" id="sth"></div><h2>Sound</h2><div class="chips" id="ssn"></div><h2>My data</h2><button class="btn g" id="clr">Clear my history and bonus streak</button><p class="note" id="sm"></p></div></section>
-<section class="pane" id="wl"><div class="grid" id="wk"></div>
-<div class="card"><h2>Free refill</h2><p class="note" style="margin:0 0 10px">Run low? Get back to 500 play coins once a day when you have under 100. Coins are for fun only and have no cash value.</p><button class="btn" id="wrf">Refill my coins</button><p class="note" id="wmsg" role="status"></p></div>
-<div class="card"><h2>Coin history</h2><div class="wrap"><table id="wtx"></table></div></div>
-<div hidden><div class="chips" id="wtabs"></div><div id="w-top"></div><div id="w-ex"></div><div id="w-wd"></div><input id="wta"><input id="wec"><input id="wwa"><div id="wtp"></div><div id="wep"></div><div id="wwp"></div><div id="wwh"></div></div>
-<p class="note">Play coins only. No money can be paid in or taken out.</p></section>
+<section class="pane" id="wl"><div class="card" style="border-left:4px solid var(--ac)"><b>Demo wallet.</b> <span class="note" style="display:inline">Top up, exchange and withdraw are a demonstration. No real money is charged or sent, and coins have no cash value.</span></div><div class="grid" id="wk"></div><div class="card"><div class="chips" id="wtabs"></div>
+<div id="w-top"><label class="fl" for="wta">Amount to pay (GHS, whole cedis, min 10)</label><input class="fi" id="wta" type="number" min="10" step="1" inputmode="numeric" placeholder="10"><div class="chips" id="wq"><button class="chip" data-q="10">10</button><button class="chip" data-q="20">20</button><button class="chip" data-q="50">50</button><button class="chip" data-q="100">100</button></div>
+<label class="fl" for="wtm">Mobile money</label><select class="fi" id="wtm"><option>MTN MoMo</option><option>Telecel Cash</option><option>AirtelTigo Money</option></select><label class="fl" for="wtn">Mobile money number</label><input class="fi" id="wtn" type="tel" autocomplete="tel" placeholder="024 123 4567"><div class="pv" id="wtp"></div><button class="btn full" id="wtg">Top up</button></div>
+<div id="w-ex" hidden><label class="fl" for="wec">Coins to exchange</label><input class="fi" id="wec" type="number" min="1" step="1" inputmode="numeric" placeholder="0"><div class="chips"><button class="chip" id="wem">Max</button></div><div class="pv" id="wep"></div><button class="btn full" id="weg">Exchange to GHS</button></div>
+<div id="w-wd" hidden><div class="note" id="wwh"></div><label class="fl" for="wwa">Amount to withdraw (GHS)</label><input class="fi" id="wwa" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"><div class="chips"><button class="chip" id="wwm">Max</button></div>
+<label class="fl" for="wwt">Send to</label><select class="fi" id="wwt"><option>MTN MoMo</option><option>Telecel Cash</option><option>AirtelTigo Money</option></select><label class="fl" for="wwn">Mobile money number</label><input class="fi" id="wwn" type="tel" autocomplete="tel" placeholder="024 123 4567"><div class="pv" id="wwp"></div><button class="btn full" id="wwg">Withdraw</button></div>
+<p class="note" id="wmsg" role="status"></p></div>
+<div class="card"><h2>Wallet history</h2><div class="wrap"><table id="wtx"></table></div></div>
+<p class="note">GHS 1 = 10 coins · Minimum top up GHS 10 (100 coins) · Withdrawals cost a 4% fee · To withdraw, exchange coins to GHS first. Payments and payouts here are a simulation: no real money moves until this is connected to a mobile money provider.</p></section>
 <section class="pane" id="pl"><div class="card"><h2>Players</h2><div class="wrap"><table id="plt"></table></div></div></section>
 
 <script>
@@ -1883,20 +1887,14 @@ document.getElementById('wl').addEventListener('click',e=>{const t=e.target.clos
 if(t.dataset.wa){WA=t.dataset.wa;wmsg('');walRender()}else if(t.dataset.q){$('wta').value=t.dataset.q;wprev()}
 else if(t.id==='wem'){$('wec').value=WC;wprev()}else if(t.id==='wwm'){$('wwa').value=(WL.p/100).toFixed(2);wprev()}
 else if(t.id==='wtg'){const a=+$('wta').value,n=$('wtn').value;if(!Number.isInteger(a)||a<MINTOP)return wmsg('Minimum top up is GHS '+MINTOP+', in whole cedis.');if(!ph(n))return wmsg('Enter a valid mobile money number.');
-const c=a*RATE;setCoins(WC+c);wtx('Top up',c,0,'Paid '+gh(a*100)+' via '+$('wtm').value+' ···'+last3(n));$('wta').value='';wmsg('Top up successful: +'+c.toLocaleString()+' coins.',1);render()}
+const c=a*RATE;setCoins(WC+c);wtx('Top up',c,0,'Demo: '+gh(a*100)+' via '+$('wtm').value+' ···'+last3(n));$('wta').value='';wmsg('Demo top up: +'+c.toLocaleString()+' coins. No money was charged.',1);render()}
 else if(t.id==='weg'){const c=Math.floor(+$('wec').value||0);if(c<1)return wmsg('Enter the coins to exchange.');if(c>WC)return wmsg('You only have '+WC.toLocaleString()+' coins.');
-setCoins(WC-c);WL.p+=c*10;wtx('Exchange',-c,c*10,c.toLocaleString()+' coins → '+gh(c*10));$('wec').value='';wmsg('Exchanged '+c.toLocaleString()+' coins to '+gh(c*10)+'.',1);render()}
+setCoins(WC-c);WL.p+=c*10;wtx('Exchange',-c,c*10,c.toLocaleString()+' coins → '+gh(c*10));$('wec').value='';wmsg('Demo exchange: '+c.toLocaleString()+' coins to '+gh(c*10)+'. Play money only.',1);render()}
 else if(t.id==='wwg'){const p=Math.round((+$('wwa').value||0)*100),n=$('wwn').value;if(p<1)return wmsg('Enter an amount to withdraw.');if(WL.p<1)return wmsg('Exchange coins to GHS first.');if(p>WL.p)return wmsg('You can withdraw up to '+gh(WL.p)+'.');if(!ph(n))return wmsg('Enter a valid mobile money number.');
-const fee=Math.round(p*FEE);WL.p-=p;wtx('Withdraw',0,-p,'Fee '+gh(fee)+' · Sent '+gh(p-fee)+' to '+$('wwt').value+' ···'+last3(n));$('wwa').value='';wmsg('Withdrawal of '+gh(p-fee)+' requested (fee '+gh(fee)+').',1);render()}});
+const fee=Math.round(p*FEE);WL.p-=p;wtx('Withdraw',0,-p,'Demo · Fee '+gh(fee)+' · '+gh(p-fee)+' to '+$('wwt').value+' ···'+last3(n));$('wwa').value='';wmsg('Demo withdrawal of '+gh(p-fee)+' (fee '+gh(fee)+'). No money was sent.',1);render()}});
 document.getElementById('wl').addEventListener('input',wprev);
 window.addEventListener('message',e=>{const m=e.data;if(m&&m.ap===1&&typeof m.coins==='number'){WC=m.coins;frames().forEach(w=>{if(w!==e.source)try{w.postMessage({ap:4,coins:WC},'*')}catch(x){}});walRender()}});
 const _r2=render;render=function(){_r2();walRender()};
-walRender=function(){const c=kp('Coins','🪙 '+WC.toLocaleString());$('hb').innerHTML=c;$('wk').innerHTML=c;
-$('wtx').innerHTML='<tr><th>When</th><th>What</th><th>Coins</th></tr>'+(WL.tx.length?WL.tx.slice(0,30).map(x=>'<tr><td>'+new Date(x.t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</td><td>'+wesc(x.k)+'</td><td class="pos">'+f(x.dc)+'</td></tr>').join(''):'<tr><td colspan="3">No refills yet.</td></tr>')};
-document.getElementById('wl').addEventListener('click',e=>{if(e.target.id!=='wrf')return;const last=WL.tx.find(x=>x.k==='Free refill');
-if(WC>=100)return wmsg('You still have '+WC.toLocaleString()+' coins. Refills are for when you are under 100.');
-if(last&&Date.now()-last.t<864e5)return wmsg('You already refilled in the last 24 hours. Come back tomorrow, and do not forget the daily bonus.');
-const add=500-WC;setCoins(500);wtx('Free refill',add,0,'');wmsg('Refilled to 500 coins.',1);render()});
 // Only signed-in PawaOdds users play: send everyone else to the sign-in page.
 (function(){try{var c=(window.ODDSDAY_CONFIG||{}).apiUrl||'',t=localStorage.getItem('oddsday_token')||'';
 fetch(c+'/api/me',{headers:t?{Authorization:'Bearer '+t}:{},credentials:'include'}).then(function(r){if(!r.ok)location.replace('/')}).catch(function(){})}catch(e){}})();

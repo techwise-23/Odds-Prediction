@@ -195,7 +195,7 @@ main&gt;header,main&gt;.tabs{grid-column:1/3}.tabs+.card{grid-column:1;grid-row:
 &lt;div class=&quot;chips&quot; id=&quot;chips&quot;&gt;&lt;/div&gt;&lt;div class=&quot;chips&quot; id=&quot;cls&quot;&gt;&lt;/div&gt;
 &lt;div class=&quot;chips&quot; id=&quot;rdsel&quot;&gt;&lt;span class=&quot;mut&quot;&gt;Road:&lt;/span&gt;&lt;button class=&quot;chip on&quot; data-rd=&quot;rand&quot;&gt;🎲 Random&lt;/button&gt;&lt;button class=&quot;chip&quot; data-rd=&quot;city&quot;&gt;🏙️ City&lt;/button&gt;&lt;/div&gt;
 &lt;button class=&quot;go&quot; id=&quot;go&quot;&gt;Start&lt;/button&gt;
-&lt;p&gt;&lt;small&gt;Win: +stake. Lose: −stake. If it ends in a draw and you picked A or B, you don’t lose anything: your stake comes back. Pick Draw and get it right: +4× stake. Play coins only, no real money.&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;&lt;small&gt;Win: +0.9× your stake. Lose: −stake. If it ends in a draw and you picked A or B, your stake comes back. Pick Draw and get it right: +8× stake. Odds: A 45%, B 45%, Draw 10%. Play coins only, no real money.&lt;/small&gt;&lt;/p&gt;
 &lt;/div&gt;
 &lt;div class=&quot;card&quot; id=&quot;spinCard&quot;&gt;
 &lt;div class=&quot;sec&quot;&gt;Spin the wheel&lt;/div&gt;
@@ -762,7 +762,7 @@ function finish(){
  }
  let msg,cls,d=0;
  if(r===&#x27;D&#x27;){
-  if(pick===&#x27;D&#x27;){d=stake*4;msg=&#x27;🤝 It’s a draw! You called it: +&#x27;+d;cls=&#x27;win&#x27;}
+  if(pick===&#x27;D&#x27;){d=stake*8;msg=&#x27;🤝 It’s a draw! You called it: +&#x27;+d;cls=&#x27;win&#x27;}
   else{msg=&#x27;🤝 Draw! No loss: your &#x27;+stake+&#x27; is back.&#x27;;cls=&#x27;&#x27;}
  }else{
   const w=r===&#x27;A&#x27;?m.a:m.b;
@@ -843,9 +843,9 @@ $(&#x27;rc&#x27;).addEventListener(&#x27;input&#x27;,()=&gt;{$(&#x27;rc&#x27;).v
 $(&#x27;rc&#x27;).addEventListener(&#x27;keydown&#x27;,e=&gt;{if(e.key===&#x27;Enter&#x27;&amp;&amp;!net.ws)connect()});
 $(&#x27;nm&#x27;).addEventListener(&#x27;keydown&#x27;,e=&gt;{if(e.key===&#x27;Enter&#x27;)$(&#x27;rc&#x27;).focus()});
 /* ===== SPIN GAME (prize wheel) ===== */
-const SP={seg:[&#x27;R&#x27;,&#x27;X&#x27;,&#x27;B&#x27;,&#x27;H&#x27;,&#x27;R&#x27;,&#x27;X&#x27;,&#x27;G&#x27;,&#x27;R&#x27;,&#x27;A&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;H&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;G&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;R&#x27;],th:0,on:false,busy:false,picks:new Set(),hist:[],last:null,auto:0,pl:0,n:0,best:0,anim:null,flap:0,glow:null,conf:[],raf:0,
+const SP={seg:[&#x27;X&#x27;,&#x27;R&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;X&#x27;,&#x27;G&#x27;,&#x27;R&#x27;,&#x27;H&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;A&#x27;,&#x27;X&#x27;,&#x27;B&#x27;,&#x27;R&#x27;,&#x27;X&#x27;,&#x27;H&#x27;,&#x27;G&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;R&#x27;],th:0,on:false,busy:false,picks:new Set(),hist:[],last:null,auto:0,pl:0,n:0,best:0,anim:null,flap:0,glow:null,conf:[],raf:0,
  info:{R:{n:&#x27;Red&#x27;,c:&#x27;#e5384f&#x27;,p:1},B:{n:&#x27;Blue&#x27;,c:&#x27;#3b9cff&#x27;,p:4},G:{n:&#x27;Green&#x27;,c:&#x27;#2f9e44&#x27;,p:6},A:{n:&#x27;Gold&#x27;,c:&#x27;#ffd43b&#x27;,p:14},X:{n:&#x27;Bust&#x27;,c:&#x27;#4b5563&#x27;,p:0},H:{n:&#x27;Half&#x27;,c:&#x27;#8b5cf6&#x27;,p:0.5}}};
-SP.mul=SP.seg.map((k,i)=&gt;k===&#x27;R&#x27;?([7,17].indexOf(i)&gt;=0?2:1):SP.info[k].p);
+SP.mul=SP.seg.map((k,i)=&gt;k===&#x27;R&#x27;?([2,13].indexOf(i)&gt;=0?2:1):SP.info[k].p);
 SP.rng=k=&gt;{const m=SP.seg.map((q,i)=&gt;q===k?SP.mul[i]:0).filter(Boolean),a=Math.min.apply(0,m),b=Math.max.apply(0,m);return a===b?a+&#x27;×&#x27;:a+&#x27;–&#x27;+b+&#x27;×&#x27;};
 try{const h=JSON.parse(localStorage.getItem(&#x27;ap_sph&#x27;)||&#x27;[]&#x27;);if(Array.isArray(h))SP.hist=h.filter(k=&gt;typeof k===&#x27;string&#x27;&amp;&amp;k.length===1&amp;&amp;&#x27;RBGAXH&#x27;.includes(k)).slice(0,50);const s=JSON.parse(localStorage.getItem(&#x27;ap_sps&#x27;)||&#x27;{}&#x27;);SP.pl=+s.pl||0;SP.n=+s.n||0;SP.best=+s.best||0}catch(e){}
 function spDraw(now){now=now||performance.now();const cv=$(&#x27;spcv&#x27;),c=cv.getContext(&#x27;2d&#x27;),W=cv.width,R=W/2-34,a=Math.PI*2/20,spinning=!!SP.anim;
@@ -1058,7 +1058,7 @@ main&gt;header,main&gt;.tabs{grid-column:1/3}.tabs+.card{grid-column:1;grid-row:
 &lt;div class=&quot;chips&quot; id=&quot;chips&quot;&gt;&lt;/div&gt;&lt;div class=&quot;chips&quot; id=&quot;cls&quot;&gt;&lt;/div&gt;
 &lt;div class=&quot;chips&quot; id=&quot;rdsel&quot;&gt;&lt;span class=&quot;mut&quot;&gt;Road:&lt;/span&gt;&lt;button class=&quot;chip on&quot; data-rd=&quot;rand&quot;&gt;🎲 Random&lt;/button&gt;&lt;button class=&quot;chip&quot; data-rd=&quot;city&quot;&gt;🏙️ City&lt;/button&gt;&lt;/div&gt;
 &lt;button class=&quot;go&quot; id=&quot;go&quot;&gt;Start&lt;/button&gt;
-&lt;p&gt;&lt;small&gt;Win: +stake. Lose: −stake. If it ends in a draw and you picked A or B, you don’t lose anything: your stake comes back. Pick Draw and get it right: +4× stake. Play coins only, no real money.&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;&lt;small&gt;Win: +0.9× your stake. Lose: −stake. If it ends in a draw and you picked A or B, your stake comes back. Pick Draw and get it right: +8× stake. Odds: A 45%, B 45%, Draw 10%. Play coins only, no real money.&lt;/small&gt;&lt;/p&gt;
 &lt;/div&gt;
 &lt;div class=&quot;card&quot; id=&quot;spinCard&quot;&gt;
 &lt;div class=&quot;sec&quot;&gt;Spin the wheel&lt;/div&gt;
@@ -1625,7 +1625,7 @@ function finish(){
  }
  let msg,cls,d=0;
  if(r===&#x27;D&#x27;){
-  if(pick===&#x27;D&#x27;){d=stake*4;msg=&#x27;🤝 It’s a draw! You called it: +&#x27;+d;cls=&#x27;win&#x27;}
+  if(pick===&#x27;D&#x27;){d=stake*8;msg=&#x27;🤝 It’s a draw! You called it: +&#x27;+d;cls=&#x27;win&#x27;}
   else{msg=&#x27;🤝 Draw! No loss: your &#x27;+stake+&#x27; is back.&#x27;;cls=&#x27;&#x27;}
  }else{
   const w=r===&#x27;A&#x27;?m.a:m.b;
@@ -1706,9 +1706,9 @@ $(&#x27;rc&#x27;).addEventListener(&#x27;input&#x27;,()=&gt;{$(&#x27;rc&#x27;).v
 $(&#x27;rc&#x27;).addEventListener(&#x27;keydown&#x27;,e=&gt;{if(e.key===&#x27;Enter&#x27;&amp;&amp;!net.ws)connect()});
 $(&#x27;nm&#x27;).addEventListener(&#x27;keydown&#x27;,e=&gt;{if(e.key===&#x27;Enter&#x27;)$(&#x27;rc&#x27;).focus()});
 /* ===== SPIN GAME (prize wheel) ===== */
-const SP={seg:[&#x27;R&#x27;,&#x27;X&#x27;,&#x27;B&#x27;,&#x27;H&#x27;,&#x27;R&#x27;,&#x27;X&#x27;,&#x27;G&#x27;,&#x27;R&#x27;,&#x27;A&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;H&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;G&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;R&#x27;],th:0,on:false,busy:false,picks:new Set(),hist:[],last:null,auto:0,pl:0,n:0,best:0,anim:null,flap:0,glow:null,conf:[],raf:0,
+const SP={seg:[&#x27;X&#x27;,&#x27;R&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;X&#x27;,&#x27;G&#x27;,&#x27;R&#x27;,&#x27;H&#x27;,&#x27;X&#x27;,&#x27;R&#x27;,&#x27;A&#x27;,&#x27;X&#x27;,&#x27;B&#x27;,&#x27;R&#x27;,&#x27;X&#x27;,&#x27;H&#x27;,&#x27;G&#x27;,&#x27;R&#x27;,&#x27;B&#x27;,&#x27;R&#x27;],th:0,on:false,busy:false,picks:new Set(),hist:[],last:null,auto:0,pl:0,n:0,best:0,anim:null,flap:0,glow:null,conf:[],raf:0,
  info:{R:{n:&#x27;Red&#x27;,c:&#x27;#e5384f&#x27;,p:1},B:{n:&#x27;Blue&#x27;,c:&#x27;#3b9cff&#x27;,p:4},G:{n:&#x27;Green&#x27;,c:&#x27;#2f9e44&#x27;,p:6},A:{n:&#x27;Gold&#x27;,c:&#x27;#ffd43b&#x27;,p:14},X:{n:&#x27;Bust&#x27;,c:&#x27;#4b5563&#x27;,p:0},H:{n:&#x27;Half&#x27;,c:&#x27;#8b5cf6&#x27;,p:0.5}}};
-SP.mul=SP.seg.map((k,i)=&gt;k===&#x27;R&#x27;?([7,17].indexOf(i)&gt;=0?2:1):SP.info[k].p);
+SP.mul=SP.seg.map((k,i)=&gt;k===&#x27;R&#x27;?([2,13].indexOf(i)&gt;=0?2:1):SP.info[k].p);
 SP.rng=k=&gt;{const m=SP.seg.map((q,i)=&gt;q===k?SP.mul[i]:0).filter(Boolean),a=Math.min.apply(0,m),b=Math.max.apply(0,m);return a===b?a+&#x27;×&#x27;:a+&#x27;–&#x27;+b+&#x27;×&#x27;};
 try{const h=JSON.parse(localStorage.getItem(&#x27;ap_sph&#x27;)||&#x27;[]&#x27;);if(Array.isArray(h))SP.hist=h.filter(k=&gt;typeof k===&#x27;string&#x27;&amp;&amp;k.length===1&amp;&amp;&#x27;RBGAXH&#x27;.includes(k)).slice(0,50);const s=JSON.parse(localStorage.getItem(&#x27;ap_sps&#x27;)||&#x27;{}&#x27;);SP.pl=+s.pl||0;SP.n=+s.n||0;SP.best=+s.best||0}catch(e){}
 function spDraw(now){now=now||performance.now();const cv=$(&#x27;spcv&#x27;),c=cv.getContext(&#x27;2d&#x27;),W=cv.width,R=W/2-34,a=Math.PI*2/20,spinning=!!SP.anim;

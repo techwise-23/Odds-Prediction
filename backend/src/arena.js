@@ -72,9 +72,10 @@ const claimBonus = db.transaction(userId => {
 
 // ---- games. The server draws the result; the page only animates it.
 const rint = n => crypto.randomInt(n);
-const SEG = ['R','X','B','H','R','X','G','R','A','X','R','B','H','X','R','G','X','R','B','R'];
+// Colours are laid out irregularly on purpose (no even rhythm). The draw below is a uniform secure-random slot, so the layout does not change the odds.
+const SEG = ['X','R','R','B','X','G','R','H','X','R','A','X','B','R','X','H','G','R','B','R'];
 const PAY = { R: 1, B: 4, G: 6, A: 14, X: 0, H: 0.5 };
-const MUL = SEG.map((k, i) => k === 'R' ? ([7, 17].includes(i) ? 2 : 1) : PAY[k]);
+const MUL = SEG.map((k, i) => k === 'R' ? ([2, 13].includes(i) ? 2 : 1) : PAY[k]);
 
 const spin = db.transaction((userId, picks, stake) => {
   picks = [...new Set(Array.isArray(picks) ? picks.map(String) : [])];
@@ -98,7 +99,7 @@ const race = db.transaction((userId, pick, stake) => {
   const w = ensure(userId);
   if (w.coins < stake) throw fail('Not enough coins: lower the stake');
   const x = rint(100), r = x < 45 ? 'A' : x < 90 ? 'B' : 'D';
-  const net = r === 'D' ? (pick === 'D' ? stake * 4 : 0) : (pick === r ? stake : -stake);
+  const net = r === 'D' ? (pick === 'D' ? stake * 8 : 0) : (pick === r ? Math.round(stake * 0.9) : -stake);
   const coins = change(userId, net);
   db.prepare('UPDATE arena_wallets SET wagered = wagered + ? WHERE user_id = ?').run(stake, userId);
   db.prepare('INSERT INTO arena_rounds (user_id, game, stake, detail, net) VALUES (?,?,?,?,?)').run(userId, 'Race', stake, JSON.stringify({ pick, r }), net);

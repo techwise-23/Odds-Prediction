@@ -103,6 +103,16 @@ module.exports = {
     dailyLimit: Number(env.ARENA_DAILY_LIMIT || 200),                // most a player can buy per day, in whole units
     welcomeCoins: Number(env.ARENA_WELCOME_COINS || 1000),
     dailyBonus: Number(env.ARENA_DAILY_BONUS || 5),
+    // Cash-out (turning coins back into money). OFF unless ARENA_CASHOUT=on. Needs a gaming licence and a payment provider that allows payouts.
+    cashout: {
+      enabled: String(env.ARENA_CASHOUT || '').toLowerCase() === 'on',
+      method: String(env.ARENA_PAYOUT_METHOD || 'manual').toLowerCase() === 'paystack' ? 'paystack' : 'manual', // manual = admin pays by hand and marks it paid
+      coinsPerUnit: Number(env.ARENA_CASHOUT_COINS_PER_GHS || env.ARENA_COINS_PER_GHS || 10),
+      feePct: Number(env.ARENA_WITHDRAW_FEE_PCT || 4),
+      min: Number(env.ARENA_MIN_WITHDRAW || 10),                    // smallest withdrawal, whole units
+      dailyLimit: Number(env.ARENA_DAILY_WITHDRAW_LIMIT || 1000),   // most a player can withdraw per day, whole units
+      turnover: Number(env.ARENA_TURNOVER || 1),                    // coins played must reach this multiple of coins bought before a withdrawal
+    },
   },
   premiumPlans: [
     { key: 'daily', name: 'Daily pass', price: Number(env.PREMIUM_PRICE_DAILY ?? 15) },

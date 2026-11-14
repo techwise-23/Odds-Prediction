@@ -96,7 +96,7 @@ th{color:var(--ac)}.v:not(.pos):not(.neg){color:var(--ac2)}
 <div class="card gc"><h3>🏁 Race</h3><p class="note" style="margin:0 0 12px">Pick Car A, Car B or Draw and watch the race.</p><button class="btn" data-t="rc">Play Race</button></div>
 <div class="card gc s"><h3>🎡 Spin</h3><p class="note" style="margin:0 0 12px">Bet on your colours and spin the wheel.</p><button class="btn" data-t="sp">Play Spin</button></div></div>
 <p class="note">Your bets and results are in the History tab.</p>
-<div class="card" style="border-left:4px solid var(--ac)"><b>Coins only.</b> <span class="note" style="display:inline">You start with free coins and get a daily bonus. You can also buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.</span></div></section>
+<div class="card" style="border-left:4px solid var(--ac)"><b>Coins only.</b> <span class="note" id="hnote" style="display:inline">You start with free coins and get a daily bonus. You can also buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.</span></div></section>
 
 <section class="pane" id="rc"><iframe class="gf" id="fr" title="Race game" srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;
@@ -1831,8 +1831,9 @@ $(&#x27;snd&#x27;).onclick=()=&gt;{SND=!SND;$(&#x27;snd&#x27;).textContent=SND?&
 <div class="card"><h2>Buy coins</h2><div class="grid" id="packs"></div>
 <label class="fl" for="wem">Email for your receipt (optional)</label><input class="fi" id="wem" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
 <p class="note" id="wlim"></p><p class="note" id="wmsg" role="status"></p></div>
+<div id="co"></div>
 <div class="card"><h2>Coin history</h2><div class="wrap"><table id="wtx"></table></div></div>
-<div class="card" style="border-left:4px solid var(--ac)"><b>Please read.</b> <span class="note" style="display:inline">Coins are bought with real money (paid on Paystack) and used only inside Arena Picks. They have no cash value and cannot be refunded, withdrawn or exchanged for anything. Results are random and you can lose all your coins. 18+ only. Play within your means.</span></div>
+<div class="card" style="border-left:4px solid var(--ac)"><b>Please read.</b> <span class="note" id="wnote" style="display:inline">Coins are bought with real money (paid on Paystack) and used only inside Arena Picks. They have no cash value and cannot be refunded, withdrawn or exchanged for anything. Results are random and you can lose all your coins. 18+ only. Play within your means.</span></div>
 <div hidden><div class="chips" id="wtabs"></div><div id="w-top"></div><div id="w-ex"></div><div id="w-wd"></div><input id="wta"><input id="wec"><input id="wwa"><div id="wtp"></div><div id="wep"></div><div id="wwp"></div><div id="wwh"></div></div></section>
 <section class="pane" id="pl"><div class="card"><h2>Players</h2><div class="wrap"><table id="plt"></table></div></div></section>
 
@@ -1939,7 +1940,7 @@ window.ARENA=ARENA; // the game frames call parent.ARENA
 let LOADED=false,BON={can:false,amount:5,streak:0},PACKS=[],WLIM=null,WTX=[],LDR=[],WCUR='GHS',PAYON=false;
 WC=0;
 function wmsg2(t,ok){const e=$('wmsg');e.textContent=t||'';e.className='note '+(ok?'pos':t?'neg':'')}
-async function loadWallet(){try{const w=await ARENA.api('/api/arena/wallet');WC=w.coins;BON=w.bonus;PACKS=w.packs;WLIM=w.limit;WTX=w.tx;WCUR=w.currency;PAYON=w.enabled;LOADED=true;post({ap:4,coins:WC});bn();render()}catch(e){wmsg2(e.message)}}
+async function loadWallet(){try{const w=await ARENA.api('/api/arena/wallet');WC=w.coins;BON=w.bonus;PACKS=w.packs;WLIM=w.limit;WTX=w.tx;WCUR=w.currency;PAYON=w.enabled;LOADED=true;CO=w.cashout;post({ap:4,coins:WC});bn();render();coRender();noteRender()}catch(e){wmsg2(e.message)}}
 async function loadLeaders(){try{LDR=(await ARENA.api('/api/arena/leaders')).leaders;lead()}catch(e){}}
 bn=function(){$('bn').innerHTML='<div><div class="k">Daily bonus</div><div class="v">'+(BON.can?'+'+BON.amount+' coins ready':'Claimed today')+'</div><div class="note">Streak: '+BON.streak+' day(s). Claim '+BON.amount+' free coins every day.</div></div><button class="btn" id="claim"'+(BON.can?'':' disabled style="opacity:.5"')+'>'+(BON.can?'Claim bonus':'Come back tomorrow')+'</button>'};
 claim=async function(){try{const r=await ARENA.api('/api/arena/bonus',{method:'POST'});WC=r.coins;BON.can=false;BON.streak=r.streak;post({ap:4,coins:WC});await loadWallet()}catch(e){wmsg2(e.message)}};
@@ -1961,6 +1962,43 @@ document.addEventListener('click',async function(e){
  try{const r=await ARENA.api('/api/arena/verify',{method:'POST',body:{reference:ref}});document.querySelector('.tab[data-t=wl]').click();
   wmsg2(r.paid?'Payment received. Your coins have been added.':'Payment not completed yet ('+r.state+'). If you paid, your coins will appear within a few minutes.',r.paid)}catch(err){wmsg2(err.message)}})();
 setInterval(function(){if(document.querySelector('#lb.on'))loadLeaders()},30000);
+
+// ===== Cash-out (only when the server has it switched on) =====
+let CO=null;
+const cmoney=function(m){return WCUR+' '+(m/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})};
+function noteRender(){const on=CO&&CO.enabled;
+ $('wnote').textContent=on?'Coins are bought with real money (paid on Paystack). You can convert coins to cash and withdraw to your own mobile money number, with a '+CO.feePct+'% fee, after age and play-through checks and an approval by our team. Bought coins cannot be refunded. Results are random and you can lose all your coins. 18+ only. Play within your means.':'Coins are bought with real money (paid on Paystack) and used only inside Arena Picks. They have no cash value and cannot be refunded, withdrawn or exchanged for anything. Results are random and you can lose all your coins. 18+ only. Play within your means.';
+ $('hnote').textContent=on?'You start with free coins and get a daily bonus. You can buy coins, and convert coins to cash and withdraw once you have confirmed your details. 18+ only.':'You start with free coins and get a daily bonus. You can also buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.'}
+const STATUS={pending:'Waiting for approval',approved:'Approved, being paid',processing:'Being paid',paid:'Paid',rejected:'Declined',failed:'Failed, cash returned'};
+function coRender(){const c=CO,box=$('co');if(!c||!c.enabled){box.innerHTML='';return}
+ const act=document.activeElement;if(act&&box.contains(act)&&/INPUT|SELECT/.test(act.tagName))return; // do not wipe what the player is typing
+ let h='<div class="card"><h2>Cash out</h2><div class="grid">'+kp('Cash balance',cmoney(c.cash))+'</div>'+
+  '<p class="note">Rate: '+c.coinsPerUnit+' coins = '+WCUR+' 1.</p>'+
+  '<label class="fl" for="cvc">Coins to convert</label><input class="fi" id="cvc" type="number" inputmode="numeric" min="'+c.coinsPerUnit+'" placeholder="e.g. 500">'+
+  '<p class="note" id="cvp"></p><button class="btn" id="cvg">Convert to cash</button>';
+ h+='<h2 style="margin-top:18px">Withdraw</h2>';
+ if(!c.kyc){h+='<p class="note">Before your first withdrawal we need your details. Use the name on your mobile money account.</p>'+
+  '<label class="fl" for="kyn">Full name</label><input class="fi" id="kyn" autocomplete="name" placeholder="First and last name">'+
+  '<label class="fl" for="kyd">Date of birth</label><input class="fi" id="kyd" type="date">'+
+  '<label class="note" style="display:flex;gap:8px;align-items:flex-start;margin:10px 0"><input type="checkbox" id="kyc"> I am 18 or older and these details are mine.</label><button class="btn" id="kyg">Save my details</button>'}
+ else{h+='<p class="note">Paid to <b>'+wesc(c.number)+'</b> ('+wesc(c.kyc.name)+'), the phone number of this account, minus a '+c.feePct+'% fee. Minimum '+WCUR+' '+c.min+'. You can still withdraw '+cmoney(c.dailyLeft)+' today.</p>'+
+  (c.playThrough.ok?'':'<p class="note neg">Play through your purchases first: you have played '+c.playThrough.played.toLocaleString()+' of '+c.playThrough.needed.toLocaleString()+' coins.</p>')+
+  '<label class="fl" for="wda">Amount ('+WCUR+')</label><input class="fi" id="wda" type="number" inputmode="decimal" min="'+c.min+'" step="0.01" placeholder="'+c.min+'">'+
+  '<label class="fl" for="wdn">Network</label><select class="fi" id="wdn">'+Object.keys(c.networks).map(function(k){return '<option value="'+k+'">'+wesc(c.networks[k])+'</option>'}).join('')+'</select>'+
+  '<p class="note" id="wdp"></p><button class="btn" id="wdg">Request withdrawal</button>'}
+ h+='<p class="note" id="comsg" role="status"></p></div>';
+ if(c.withdrawals.length)h+='<div class="card"><h2>Withdrawals</h2><div class="wrap"><table><tr><th>When</th><th>You get</th><th>Status</th></tr>'+c.withdrawals.map(function(x){return '<tr><td>'+new Date(x.created_at.replace(' ','T')+'Z').toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</td><td>'+cmoney(x.net)+'</td><td>'+wesc(STATUS[x.status]||x.status)+(x.note?'<br><small>'+wesc(x.note)+'</small>':'')+'</td></tr>'}).join('')+'</table></div></div>';
+ box.innerHTML=h}
+function comsg(t,ok){const e=$('comsg');if(e){e.textContent=t||'';e.className='note '+(ok?'pos':'neg')}}
+document.addEventListener('input',function(e){
+ if(e.target.id==='cvc'&&CO){const n=Math.floor(+e.target.value||0),cash=Math.floor(n*100/CO.coinsPerUnit);$('cvp').textContent=n>=CO.coinsPerUnit?n.toLocaleString()+' coins = '+cmoney(cash):''}
+ if(e.target.id==='wda'&&CO){const a=Math.round((+e.target.value||0)*100),fee=Math.round(a*CO.feePct/100);$('wdp').textContent=a>0?'Fee '+cmoney(fee)+'. You receive '+cmoney(a-fee)+'.':''}});
+document.addEventListener('click',async function(e){const id=e.target.id;if(!['cvg','kyg','wdg'].includes(id))return;e.target.disabled=true;
+ try{
+  if(id==='cvg'){const r=await ARENA.api('/api/arena/convert',{method:'POST',body:{coins:+$('cvc').value}});WC=r.coins;post({ap:4,coins:WC});await loadWallet();comsg('Converted. Your cash balance is '+cmoney(r.cash)+'.',1)}
+  if(id==='kyg'){await ARENA.api('/api/arena/kyc',{method:'POST',body:{fullName:$('kyn').value,dob:$('kyd').value,confirm:$('kyc').checked}});await loadWallet();comsg('Details saved.',1)}
+  if(id==='wdg'){const r=await ARENA.api('/api/arena/withdraw',{method:'POST',body:{amount:+$('wda').value,network:$('wdn').value}});await loadWallet();comsg('Request sent. You will receive '+cmoney(r.net)+' once our team approves it.',1)}
+ }catch(err){comsg(err.message);const b=$(id);if(b)b.disabled=false}});
 // Only signed-in PawaOdds users play: send everyone else to the sign-in page.
 (function(){try{var c=(window.ODDSDAY_CONFIG||{}).apiUrl||'',t=localStorage.getItem('oddsday_token')||'';
 fetch(c+'/api/me',{headers:t?{Authorization:'Bearer '+t}:{},credentials:'include'}).then(function(r){if(!r.ok)location.replace('/')}).catch(function(){})}catch(e){}})();

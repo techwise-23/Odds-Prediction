@@ -254,3 +254,16 @@ CREATE TABLE IF NOT EXISTS arena_orders (reference TEXT PRIMARY KEY, user_id INT
 CREATE TABLE IF NOT EXISTS arena_rounds (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, stake INTEGER NOT NULL, detail TEXT, net INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
 CREATE INDEX IF NOT EXISTS idx_arena_rounds_user ON arena_rounds(user_id, id);
 `);
+
+// Arena cash-out: cash balance, play-through tracking, player details and withdrawal requests.
+{
+  const wc = db.prepare('PRAGMA table_info(arena_wallets)').all().map(c => c.name);
+  for (const [n, d] of [['cash', 0], ['bought', 0], ['wagered', 0]]) if (!wc.includes(n)) db.exec(`ALTER TABLE arena_wallets ADD COLUMN ${n} INTEGER NOT NULL DEFAULT ${d}`);
+  db.exec(`
+  CREATE TABLE IF NOT EXISTS arena_kyc (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, full_name TEXT NOT NULL, dob TEXT NOT NULL, confirmed_at TEXT NOT NULL DEFAULT (datetime('now')));
+  CREATE TABLE IF NOT EXISTS arena_withdrawals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    gross INTEGER NOT NULL, fee INTEGER NOT NULL, net INTEGER NOT NULL, currency TEXT NOT NULL, network TEXT NOT NULL, number TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', reference TEXT UNIQUE, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), decided_at TEXT, decided_by TEXT);
+  CREATE INDEX IF NOT EXISTS idx_arena_wd_user ON arena_withdrawals(user_id, id);`);
+}

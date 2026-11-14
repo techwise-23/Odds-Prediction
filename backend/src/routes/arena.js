@@ -17,4 +17,7 @@ router.post('/arena/verify', auth, run(async req => {
   const r = await arena.verify(req.body.reference);
   return { paid: r.paid, state: r.state || (r.paid ? 'success' : 'pending'), wallet: arena.wallet(req.user.id) };
 }));
+router.post('/arena/kyc', auth, limited, run(req => require('../arena').saveKyc(req.user.id, req.body || {})));
+router.post('/arena/convert', auth, run(req => require('../arena').convert(req.user.id, req.body && req.body.coins)));
+router.post('/arena/withdraw', auth, limited, run(req => require('../arena').withdraw(req.user, req.body && req.body.amount, String(req.body && req.body.network || ''))));
 module.exports = router;

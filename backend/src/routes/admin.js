@@ -108,6 +108,14 @@ router.post('/payments/:reference/unlock', adminAuth, (req, res) => {
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 router.get('/analytics', adminAuth, (req, res) => res.json(require('../analytics').report(req.query.days)));
+router.get('/withdrawals', adminAuth, (req, res) => res.json({ enabled: config.arena.cashout.enabled, method: config.arena.cashout.method, withdrawals: require('../arena').listWithdrawals(String(req.query.status || '')) }));
+const wdRoute = (name, label, fn) => router.post('/withdrawals/:id/' + name, adminAuth, async (req, res) => {
+  try { const r = await fn(Number(req.params.id), req); settings.log(displayPhone(req.user.phone), label, '#' + Number(req.params.id)); res.json({ ok: true, ...r }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+wdRoute('approve', 'Approved an Arena withdrawal', (id, req) => require('../arena').approve(id, displayPhone(req.user.phone)));
+wdRoute('reject', 'Rejected an Arena withdrawal', (id, req) => require('../arena').reject(id, req.body && req.body.note, displayPhone(req.user.phone)));
+wdRoute('paid', 'Marked an Arena withdrawal paid', (id, req) => require('../arena').markPaid(id, displayPhone(req.user.phone)));
 router.get('/premium', adminAuth, (req, res) => res.json(require('../premium').summary()));
 const results = require('../results');
 router.get('/results', adminAuth, (req, res) => res.json({ results: results.listAll() }));

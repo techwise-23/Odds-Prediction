@@ -46,6 +46,7 @@ router.post('/paystack/webhook', async (req, res) => {
       const ref = String(req.body.data.reference);
       if (ref.startsWith('AC-')) await require('../arena').verify(ref); else await premium.verify(ref);
     }
+    if (req.body && /^transfer\.(success|failed|reversed)$/.test(req.body.event) && req.body.data && req.body.data.reference) require('../arena').transferEvent(req.body.event, req.body.data.reference);
   } catch (e) { console.error('paystack webhook:', e.message); }
 });
 

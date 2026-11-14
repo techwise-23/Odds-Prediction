@@ -212,6 +212,18 @@ async function loadCodes() {
         ${x.status === 'success' ? '' : `<button class="add" data-pay-check="${esc(x.reference)}">Check</button><button class="add danger" data-pay-unlock="${esc(x.reference)}">Unlock by hand</button>`}</span></li>`).join('')}</ul>
         ${pend.length ? `<p class="muted-inline">${pend.length} not paid in the latest ${payments.length}.</p>` : ''}</div>` : '<div class="empty">No payment attempts yet.</div>');
   } catch { /* payments are optional */ }
+  let wdHtml = '';
+  try {
+    const wd = await api('/api/admin/withdrawals');
+    if (wd.enabled) {
+      const cur = 'GHS', m = v => `${cur} ${(v / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, open = wd.withdrawals.filter(x => ['pending', 'approved', 'processing'].includes(x.status));
+      wdHtml = `<h2 class="section-head">Arena withdrawals</h2><p class="muted-inline">${wd.method === 'manual' ? 'Approve a request, send the money to the number shown, then press Mark paid.' : 'Approving a request sends the money to the player automatically through Paystack.'} Check the name matches the number before approving. Rejecting returns the cash to the player.</p>` +
+        (wd.withdrawals.length ? wd.withdrawals.slice(0, 30).map(x => `<article class="code-card post-row"><div class="code-card-head"><h3>${m(x.net)} <small>(${m(x.gross)} less ${m(x.fee)} fee)</small></h3>
+          <span>${esc(x.full_name || 'no name')} · ${esc(x.number)} · ${esc(x.network)} · born ${esc(x.dob || '?')} · ${esc(ago(x.created_at))}<br>Bought ${(x.bought || 0).toLocaleString()} coins, played ${(x.wagered || 0).toLocaleString()} · <b>${esc(x.status)}</b>${x.note ? ' · ' + esc(x.note) : ''}</span></div>
+          <div class="adm-user-btns">${x.status === 'pending' ? `<button class="add solid" data-wd="approve" data-id="${x.id}">Approve</button><button class="add danger" data-wd="reject" data-id="${x.id}">Reject</button>` : ''}${x.status === 'approved' ? `<button class="add solid" data-wd="paid" data-id="${x.id}">Mark paid</button>` : ''}</div></article>`).join('') : '<div class="empty">No withdrawal requests yet.</div>') +
+        (open.length ? `<p class="muted-inline">${open.length} waiting for you.</p>` : '');
+    }
+  } catch { /* optional */ }
   let resHtml = '';
   try {
     const rr = (await api('/api/admin/results')).results;
@@ -240,7 +252,7 @@ async function loadCodes() {
         <span>${x.used}${x.maxUses ? '/' + x.maxUses : ''} used · ${esc(fd(x.expiresAt))} · ${x.plans.length ? esc(x.plans.join(', ')) : 'all plans'}${x.winback ? ' · win-back' : ''}${x.active ? '' : ' · paused'}</span></div>
         <div class="adm-user-btns"><button class="add" data-promo-toggle="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? 'Pause' : 'Resume'}</button><button class="add danger" data-promo-del="${x.id}">Delete</button></div></article>`).join('') : '<div class="empty">No promo codes yet.</div>');
   } catch { /* promos are optional */ }
-  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + payHtml + money;
+  $('#codes').innerHTML = warn + composeHtml() + bulkHtml() + '<h2 class="section-head">Live and scheduled posts</h2>' + list + resHtml + promoHtml + payHtml + wdHtml + money;
   $$('img[data-existing]').forEach(i => adminImage(i, i.dataset.existing));
 }
 let postCache = [];
@@ -749,4 +761,13 @@ $('#adm-csv').addEventListener('click', async () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(await res.blob()); a.download = 'pawaodds-users-' + new Date().toISOString().slice(0, 10) + '.csv';
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   } catch (x) { toast(x.message); }
+});
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-wd]'); if (!b) return;
+  const act = b.dataset.wd, note = act === 'reject' ? prompt('Reason to show the player (optional)') : '';
+  if (note === null) return;
+  if (act === 'approve' && !confirm('Approve this withdrawal?')) return;
+  try { b.disabled = true; await api(`/api/admin/withdrawals/${b.dataset.id}/${act}`, { method: 'POST', body: { note } }); toast('Done'); } catch (x) { toast(x.message); }
+  loadCodes();
 });

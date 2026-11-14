@@ -96,6 +96,14 @@ module.exports = {
   // Monthly: 30 days from payment. Set a price to 0 to hide that plan.
   // Referrals: when `target` people a user referred have each bought a qualifying pass, the user gets `rewardDays` of free access.
   referral: { target: Number(env.REFERRAL_TARGET || 3), rewardDays: Number(env.REFERRAL_REWARD_DAYS || 90), plans: ['weekly', 'monthly'] },
+  // Arena Picks coins. Players buy coins with Paystack and play with them. Coins are never paid out and cannot be exchanged for cash or passes.
+  arena: {
+    coinsPerUnit: Number(env.ARENA_COINS_PER_GHS || 10),            // coins for 1 unit of the currency (GHS 1 = 10 coins)
+    packs: String(env.ARENA_PACKS || '10,20,50,100').split(',').map(Number).filter(n => n >= 1).slice(0, 6), // pack prices in whole units
+    dailyLimit: Number(env.ARENA_DAILY_LIMIT || 200),                // most a player can buy per day, in whole units
+    welcomeCoins: Number(env.ARENA_WELCOME_COINS || 1000),
+    dailyBonus: Number(env.ARENA_DAILY_BONUS || 5),
+  },
   premiumPlans: [
     { key: 'daily', name: 'Daily pass', price: Number(env.PREMIUM_PRICE_DAILY ?? 15) },
     { key: 'weekly', name: 'Weekly pass', price: Number(env.PREMIUM_PRICE_WEEKLY ?? 50) },

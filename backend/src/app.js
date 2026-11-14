@@ -25,6 +25,7 @@ app.get('/', (req, res) => res.json({ name: 'PawaOdds API', ok: true }));
 
 app.use('/api/admin', require('./routes/admin'));   // admin console (own login + session)
 app.use('/api', require('./routes/auth'));          // sign up, log in, account settings, Telegram
+app.use('/api', require('./routes/arena'));         // Arena Picks coin wallet and games
 app.use('/api', require('./routes/premium'));       // premium plans, Paystack checkout, webhook
 app.use('/api', require('./routes/picks'));         // picks, tickets, dashboard, record, slip
 

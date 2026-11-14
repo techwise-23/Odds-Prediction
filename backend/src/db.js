@@ -244,3 +244,13 @@ module.exports = db;
     kind TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`);
   db.exec('CREATE INDEX IF NOT EXISTS idx_events_kind ON events(kind, created_at)');
 }
+
+// Arena Picks: server-side coin wallet, coin purchases and every round played.
+db.exec(`
+CREATE TABLE IF NOT EXISTS arena_wallets (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, coins INTEGER NOT NULL, bonus_day TEXT, streak INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS arena_tx (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, delta INTEGER NOT NULL, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE INDEX IF NOT EXISTS idx_arena_tx_user ON arena_tx(user_id, id);
+CREATE TABLE IF NOT EXISTS arena_orders (reference TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, amount INTEGER NOT NULL, coins INTEGER NOT NULL, currency TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', channel TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), paid_at TEXT);
+CREATE TABLE IF NOT EXISTS arena_rounds (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, stake INTEGER NOT NULL, detail TEXT, net INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE INDEX IF NOT EXISTS idx_arena_rounds_user ON arena_rounds(user_id, id);
+`);

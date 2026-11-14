@@ -178,4 +178,4 @@ function summary() {
   return { active, week: sum(7), month: sum(30), recent, currency: config.paystack.currency, enabled: enabled() };
 }
 
-module.exports = { reconcile, listPayments, manualUnlock, promoPreview, enabled, offer, status, isActive, checkout, verify, grant, webhookValid, summary };
+module.exports = { paystack, toMinor, validEmail, reconcile, listPayments, manualUnlock, promoPreview, enabled, offer, status, isActive, checkout, verify, grant, webhookValid, summary };

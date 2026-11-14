@@ -96,7 +96,7 @@ th{color:var(--ac)}.v:not(.pos):not(.neg){color:var(--ac2)}
 <div class="card gc"><h3>🏁 Race</h3><p class="note" style="margin:0 0 12px">Pick Car A, Car B or Draw and watch the race.</p><button class="btn" data-t="rc">Play Race</button></div>
 <div class="card gc s"><h3>🎡 Spin</h3><p class="note" style="margin:0 0 12px">Bet on your colours and spin the wheel.</p><button class="btn" data-t="sp">Play Spin</button></div></div>
 <p class="note">Your bets and results are in the History tab.</p>
-<div class="card" style="border-left:4px solid var(--ac)"><b>Play coins only.</b> <span class="note" style="display:inline">Arena Picks is a free game for fun. The wallet is a demo: no real money moves and coins have no cash value. 18+ only.</span></div></section>
+<div class="card" style="border-left:4px solid var(--ac)"><b>Coins only.</b> <span class="note" style="display:inline">You start with free coins and get a daily bonus. You can also buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.</span></div></section>
 
 <section class="pane" id="rc"><iframe class="gf" id="fr" title="Race game" srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;
@@ -272,7 +272,19 @@ function beep(f,d=.15){if(!SND)return;const a=au();if(!a)return;const o=a.create
 function engine(on){if(!SND||!on){if(eng){try{eng.o.stop();eng.o2.stop();eng.ns&amp;&amp;eng.ns.stop()}catch(e){}eng=null}return}const a=au();if(!a||eng)return;const o=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o.type=&#x27;sawtooth&#x27;;o2.type=&#x27;square&#x27;;f.type=&#x27;lowpass&#x27;;g.gain.value=.03;o.connect(f);o2.connect(f);f.connect(g);g.connect(a.destination);o.start();o2.start();eng={o,o2,f}}
 function sq(l){if(!eng||!AC)return;if(!eng.nz){const a=AC,b=a.createBuffer(1,a.sampleRate,a.sampleRate),d=b.getChannelData(0);for(let i=0;i&lt;d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=b;s.loop=true;f.type=&#x27;bandpass&#x27;;f.frequency.value=1900;f.Q.value=6;g.gain.value=0;s.connect(f);f.connect(g);g.connect(a.destination);s.start();eng.nz=g;eng.ns=s}eng.nz.gain.setTargetAtTime(Math.min(.05,l*.05),AC.currentTime,.08)}
 function revs(v){if(eng){const a=AC.currentTime;eng.o.frequency.setTargetAtTime(55+v*110,a,.05);eng.o2.frequency.setTargetAtTime(27+v*55,a,.05);eng.f.frequency.setTargetAtTime(350+v*900,a,.05)}}
+let FORCE=null,PEND=null;
+// The server has already decided who wins; steer the animation so the finish line matches it.
+function force(g,fight,end){if(!FORCE)return;const sc=i=&gt;fight?m.v[1-i]:m.v[i],set=(i,v)=&gt;{if(fight)m.v[1-i]=v;else m.v[i]=v};
+ if(FORCE===&#x27;D&#x27;){const hi=Math.max(sc(0),sc(1));[0,1].forEach(i=&gt;{if(sc(i)&lt;hi-1)set(i,hi-1)});if(end){const f=Math.max(sc(0),sc(1));set(0,f);set(1,f)}return}
+ const w=FORCE===&#x27;A&#x27;?0:1,l=1-w;
+ if(sc(l)&gt;=g)set(l,g-3);
+ if(sc(w)&gt;=g||end){if(end&amp;&amp;sc(w)&lt;sc(l)+2)set(w,Math.min(g,sc(l)+2));set(l,Math.min(sc(l),Math.max(0,sc(w)-2)))}}
 function run(){
+ if(!parent.ARENA){run1();return}
+ $(&#x27;go&#x27;).disabled=true;
+ parent.ARENA.race(pick,stake).then(o=&gt;{FORCE=o.r;PEND=o;$(&#x27;go&#x27;).disabled=false;run1()}).catch(e=&gt;{$(&#x27;go&#x27;).disabled=false;$(&#x27;res&#x27;).textContent=e.message;$(&#x27;res&#x27;).className=&#x27;res lose&#x27;});
+}
+function run1(){
  if(mode!==&#x27;race&#x27;){run0();return}
  busy=true;$(&#x27;go&#x27;).disabled=true;$(&#x27;go&#x27;).textContent=&#x27;Get ready\u2026&#x27;;
  engine(true);say(&quot;Welcome to &quot;+(m.S?m.S.n:&quot;the track&quot;)+&quot;! Drivers, start your engines!&quot;,1);m.i0=performance.now();setTimeout(()=&gt;beep(130,.12),1300);setTimeout(()=&gt;beep(110,.12),3200);
@@ -722,7 +734,7 @@ function update(){if(mode===&#x27;race&#x27;)return;const g=M[mode].goal;[0,1].f
 function tabs(){
  $(&#x27;tabs&#x27;).innerHTML=Object.keys(M).map(k=&gt;`&lt;button class=&quot;tab ${k===mode?&#x27;on&#x27;:&#x27;&#x27;}&quot; data-m=&quot;${k}&quot;&gt;${M[k].n}&lt;/button&gt;`).join(&#x27;&#x27;);cchips();
 }
-function cchips(){const V=&#x27;&lt;button class=&quot;chip &#x27;+(vox?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-v=&quot;1&quot;&gt;🎙️ Voice&lt;/button&gt;&#x27;;$(&#x27;cls&#x27;).innerHTML=online?V:&#x27;&lt;span class=&quot;mut&quot;&gt;Cars:&lt;/span&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;super&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;super&quot;&gt;🏎️ Supercar&lt;/button&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;x4&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;x4&quot;&gt;🚙 4×4&lt;/button&gt;&lt;button class=&quot;chip &#x27;+(drive?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-d=&quot;1&quot;&gt;🕹️ I drive A&lt;/button&gt;&#x27;+V;$(&#x27;cls&#x27;).style.display=mode===&#x27;race&#x27;?&#x27;flex&#x27;:&#x27;none&#x27;}
+function cchips(){const V=&#x27;&lt;button class=&quot;chip &#x27;+(vox?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-v=&quot;1&quot;&gt;🎙️ Voice&lt;/button&gt;&#x27;;$(&#x27;cls&#x27;).innerHTML=online?V:&#x27;&lt;span class=&quot;mut&quot;&gt;Cars:&lt;/span&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;super&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;super&quot;&gt;🏎️ Supercar&lt;/button&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;x4&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;x4&quot;&gt;🚙 4×4&lt;/button&gt;&#x27;+V;$(&#x27;cls&#x27;).style.display=mode===&#x27;race&#x27;?&#x27;flex&#x27;:&#x27;none&#x27;}
 function chips(){
  $(&#x27;chips&#x27;).innerHTML=&#x27;&lt;span class=&quot;mut&quot;&gt;Stake:&lt;/span&gt;&#x27;+[50,100,250,500].map(s=&gt;`&lt;button class=&quot;chip ${s===stake?&#x27;on&#x27;:&#x27;&#x27;}&quot; data-s=&quot;${s}&quot;&gt;${s}&lt;/button&gt;`).join(&#x27;&#x27;);
 }
@@ -735,9 +747,9 @@ function run0(){
    if(fight){ if(Math.random()&lt;.6) m.v[1-i]+=Math.ceil(Math.random()*7)+s[i]*1.5; }
    else m.v[i]+=Math.floor(Math.random()*3)+(Math.random()&lt;s[i]*.13?1:0);
   }
-  update();
+  force(g,fight,false);update();
   if(mode===&#x27;race&#x27;)rx(t);const done=m.v[0]&gt;=g||m.v[1]&gt;=g||t&gt;=(mode===&#x27;race&#x27;?900:70);
-  if(done){clearInterval(id);finish();}
+  if(done){force(g,fight,true);update();clearInterval(id);finish();}
  },120);
 }
 function finish(){
@@ -757,7 +769,7 @@ function finish(){
   if(pick===r){d=drive&amp;&amp;mode===&#x27;race&#x27;?Math.round(stake/2):stake;msg=&#x27;🏆 &#x27;+w[1]+&#x27; wins! +&#x27;+d;cls=&#x27;win&#x27;}
   else{d=-stake;msg=w[1]+&#x27; wins. You lost &#x27;+stake;cls=&#x27;lose&#x27;}
  }
- coins+=d;if(coins&lt;=0){coins=1000;msg+=&#x27; · Out of coins: topped up to 1000&#x27;}
+ if(PEND){d=PEND.net;coins=PEND.coins;PEND=null;FORCE=null}else{coins+=d}
  if(mode===&#x27;race&#x27;){try{parent.postMessage({ap:1,g:&#x27;Race&#x27;,k:r,net:d,st:stake,picks:[pick],coins:coins},&#x27;*&#x27;)}catch(e){}}
  if(stake&gt;coins)stake=Math.min(stake,coins);
  save();chips();$(&#x27;res&#x27;).textContent=msg;$(&#x27;res&#x27;).className=&#x27;res &#x27;+cls;if(mode===&#x27;race&#x27;){setTimeout(()=&gt;showFin(r,d),900);fsay(r,x,y)}
@@ -874,19 +886,21 @@ function spUI(){const cnt={R:7,B:3,G:2,A:1},tally={R:0,B:0,G:0,A:0,X:0,H:0};SP.h
  $(&#x27;spacts&#x27;).innerHTML=&#x27;&lt;button class=&quot;chip&quot; data-sa=&quot;rep&quot;&#x27;+(SP.busy||!hl?&#x27; disabled&#x27;:&#x27;&#x27;)+&#x27;&gt;🔁 Repeat&lt;/button&gt;&lt;button class=&quot;chip&quot; data-sa=&quot;dbl&quot;&#x27;+bz+&#x27;&gt;×2 Stake&lt;/button&gt;&lt;button class=&quot;chip&quot; data-sa=&quot;clr&quot;&#x27;+bz+&#x27;&gt;✖ Clear&lt;/button&gt;&lt;button class=&quot;chip&#x27;+(SP.auto?&#x27; on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-sa=&quot;auto&quot;&gt;⏩ Auto ×5&#x27;+(SP.auto?&#x27; (&#x27;+SP.auto+&#x27; left)&#x27;:&#x27;&#x27;)+&#x27;&lt;/button&gt;&#x27;;
  $(&#x27;spstat&#x27;).textContent=SP.n?&#x27;Spins &#x27;+SP.n+&#x27; · session &#x27;+(SP.pl&gt;0?&#x27;+&#x27;:&#x27;&#x27;)+SP.pl+&#x27; · best win +&#x27;+SP.best:&#x27;&#x27;;
  if(!SP.busy){$(&#x27;spgo&#x27;).textContent=n?&#x27;Spin · bet &#x27;+spTotal():&#x27;Spin&#x27;}}
+let SPP=null;
 function spSpin(){if(SP.busy)return;const res=$(&#x27;spres&#x27;);
  if(!SP.picks.size){SP.auto=0;res.textContent=&#x27;Pick at least one colour&#x27;;res.className=&#x27;res&#x27;;return}
  if(spTotal()&gt;coins){SP.auto=0;res.textContent=&#x27;Not enough coins: lower the stake or drop a colour&#x27;;res.className=&#x27;res lose&#x27;;return}
  SP.last={p:[...SP.picks],s:stake};SP.busy=true;SP.glow=null;SP.conf=[];$(&#x27;spgo&#x27;).disabled=true;$(&#x27;spgo&#x27;).textContent=&#x27;Spinning…&#x27;;res.textContent=&#x27;&#x27;;res.className=&#x27;res&#x27;;
- const u=new Uint32Array(1);crypto.getRandomValues(u);
- const win=u[0]%20,a=Math.PI*2/20,T=Math.PI*2,th0=SP.th,tgt=-(win+.5)*a+(Math.random()-.5)*a*.6,turns=6+Math.floor(Math.random()*3),
+ const go=win=&gt;{const a=Math.PI*2/20,T=Math.PI*2,th0=SP.th,tgt=-(win+.5)*a+(Math.random()-.5)*a*.6,turns=6+Math.floor(Math.random()*3),
   end=tgt+T*Math.ceil((th0+T*turns-tgt)/T);
- SP.anim={th0,end,t0:performance.now(),dur:5200,win,last:-1};spUI()}
+  SP.anim={th0,end,t0:performance.now(),dur:5200,win,last:-1};spUI()};
+ if(!parent.ARENA){const u=new Uint32Array(1);crypto.getRandomValues(u);go(u[0]%20);return}
+ parent.ARENA.spin([...SP.picks],stake).then(o=&gt;{SPP=o;go(o.win)}).catch(e=&gt;{SP.busy=false;SP.auto=0;$(&#x27;spgo&#x27;).disabled=false;res.textContent=e.message;res.className=&#x27;res lose&#x27;;spUI()})}
 function spDone(win){const k=SP.seg[win],f=SP.info[k],hit=SP.picks.has(k);
  // each picked colour risks one stake; the hit colour returns stake*p net, the others lose their stake
  const net=k===&#x27;H&#x27;?-Math.round(stake*SP.picks.size/2):(hit?stake*SP.mul[win]:0)-stake*(SP.picks.size-(hit?1:0));
- coins+=net;let msg=net&gt;0?&#x27;🏆 &#x27;+f.n+&#x27;! +&#x27;+net:k===&#x27;X&#x27;?&#x27;💥 Bust! Everything you bet is lost: -&#x27;+(-net):k===&#x27;H&#x27;?&#x27;½ Half back! You lose only half: -&#x27;+(-net):net===0?f.n+&#x27; came up. You broke even&#x27;:f.n+&#x27; came up. You lost &#x27;+(-net);
- if(coins&lt;=0){coins=1000;msg+=&#x27; · Out of coins: topped up to 1000&#x27;}
+ if(SPP){coins=SPP.coins;SPP=null}else coins+=net;let msg=net&gt;0?&#x27;🏆 &#x27;+f.n+&#x27;! +&#x27;+net:k===&#x27;X&#x27;?&#x27;💥 Bust! Everything you bet is lost: -&#x27;+(-net):k===&#x27;H&#x27;?&#x27;½ Half back! You lose only half: -&#x27;+(-net):net===0?f.n+&#x27; came up. You broke even&#x27;:f.n+&#x27; came up. You lost &#x27;+(-net);
+
  if(stake&gt;coins)stake=Math.max(1,Math.min(stake,coins));save();
  SP.hist=[k].concat(SP.hist).slice(0,50);SP.n++;SP.pl+=net;if(net&gt;SP.best)SP.best=net;
  if(net&lt;0&amp;&amp;!hit&amp;&amp;[SP.seg[(win+19)%20],SP.seg[(win+1)%20]].some(x=&gt;SP.picks.has(x)))msg+=&#x27; · So close!&#x27;;
@@ -936,6 +950,7 @@ document.addEventListener(&#x27;click&#x27;,e=&gt;{
  }
 });
 window.addEventListener(&#x27;message&#x27;,e=&gt;{const d=e.data;if(!d)return;if(d.ap===2){coins+=d.bonus;try{save();chips();spUI()}catch(x){}}else if(d.ap===4){coins=Math.max(0,Math.floor(+d.coins||0));try{if(stake&gt;coins)stake=Math.max(1,coins);save();chips();spUI()}catch(x){}}else if(d.ap===3&amp;&amp;SND!==d.on)$(&#x27;snd&#x27;).click()});
+try{parent.ARENA&amp;&amp;parent.ARENA.hello()}catch(e){}
 $(&#x27;spcv&#x27;).addEventListener(&#x27;click&#x27;,()=&gt;{const A=SP.anim;if(A&amp;&amp;A.dur&gt;800&amp;&amp;performance.now()-A.t0&gt;600){A.th0=SP.th;A.t0=performance.now();A.dur=700}});
 $(&#x27;snd&#x27;).onclick=()=&gt;{SND=!SND;$(&#x27;snd&#x27;).textContent=SND?&#x27;🔊&#x27;:&#x27;🔇&#x27;;if(!SND)engine(false)};tabs();chips();save();newMatch();spUI();spDraw();try{document.fonts.ready.then(()=&gt;spDraw())}catch(e){}try{$(&#x27;nm&#x27;).value=localStorage.getItem(&#x27;ap_name&#x27;)||&#x27;&#x27;}catch(e){}
 &lt;/script&gt;&lt;script&gt;document.getElementById(&#x27;rdsel&#x27;).addEventListener(&#x27;click&#x27;,function(e){var b=e.target.closest(&#x27;[data-rd]&#x27;);if(!b)return;window.ROAD=b.dataset.rd;[].forEach.call(b.parentNode.querySelectorAll(&#x27;[data-rd]&#x27;),function(x){x.classList.toggle(&#x27;on&#x27;,x===b)});if(!online&amp;&amp;busy!==true&amp;&amp;!SP.on)newMatch()})&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
@@ -1120,7 +1135,19 @@ function beep(f,d=.15){if(!SND)return;const a=au();if(!a)return;const o=a.create
 function engine(on){if(!SND||!on){if(eng){try{eng.o.stop();eng.o2.stop();eng.ns&amp;&amp;eng.ns.stop()}catch(e){}eng=null}return}const a=au();if(!a||eng)return;const o=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o.type=&#x27;sawtooth&#x27;;o2.type=&#x27;square&#x27;;f.type=&#x27;lowpass&#x27;;g.gain.value=.03;o.connect(f);o2.connect(f);f.connect(g);g.connect(a.destination);o.start();o2.start();eng={o,o2,f}}
 function sq(l){if(!eng||!AC)return;if(!eng.nz){const a=AC,b=a.createBuffer(1,a.sampleRate,a.sampleRate),d=b.getChannelData(0);for(let i=0;i&lt;d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=b;s.loop=true;f.type=&#x27;bandpass&#x27;;f.frequency.value=1900;f.Q.value=6;g.gain.value=0;s.connect(f);f.connect(g);g.connect(a.destination);s.start();eng.nz=g;eng.ns=s}eng.nz.gain.setTargetAtTime(Math.min(.05,l*.05),AC.currentTime,.08)}
 function revs(v){if(eng){const a=AC.currentTime;eng.o.frequency.setTargetAtTime(55+v*110,a,.05);eng.o2.frequency.setTargetAtTime(27+v*55,a,.05);eng.f.frequency.setTargetAtTime(350+v*900,a,.05)}}
+let FORCE=null,PEND=null;
+// The server has already decided who wins; steer the animation so the finish line matches it.
+function force(g,fight,end){if(!FORCE)return;const sc=i=&gt;fight?m.v[1-i]:m.v[i],set=(i,v)=&gt;{if(fight)m.v[1-i]=v;else m.v[i]=v};
+ if(FORCE===&#x27;D&#x27;){const hi=Math.max(sc(0),sc(1));[0,1].forEach(i=&gt;{if(sc(i)&lt;hi-1)set(i,hi-1)});if(end){const f=Math.max(sc(0),sc(1));set(0,f);set(1,f)}return}
+ const w=FORCE===&#x27;A&#x27;?0:1,l=1-w;
+ if(sc(l)&gt;=g)set(l,g-3);
+ if(sc(w)&gt;=g||end){if(end&amp;&amp;sc(w)&lt;sc(l)+2)set(w,Math.min(g,sc(l)+2));set(l,Math.min(sc(l),Math.max(0,sc(w)-2)))}}
 function run(){
+ if(!parent.ARENA){run1();return}
+ $(&#x27;go&#x27;).disabled=true;
+ parent.ARENA.race(pick,stake).then(o=&gt;{FORCE=o.r;PEND=o;$(&#x27;go&#x27;).disabled=false;run1()}).catch(e=&gt;{$(&#x27;go&#x27;).disabled=false;$(&#x27;res&#x27;).textContent=e.message;$(&#x27;res&#x27;).className=&#x27;res lose&#x27;});
+}
+function run1(){
  if(mode!==&#x27;race&#x27;){run0();return}
  busy=true;$(&#x27;go&#x27;).disabled=true;$(&#x27;go&#x27;).textContent=&#x27;Get ready\u2026&#x27;;
  engine(true);say(&quot;Welcome to &quot;+(m.S?m.S.n:&quot;the track&quot;)+&quot;! Drivers, start your engines!&quot;,1);m.i0=performance.now();setTimeout(()=&gt;beep(130,.12),1300);setTimeout(()=&gt;beep(110,.12),3200);
@@ -1570,7 +1597,7 @@ function update(){if(mode===&#x27;race&#x27;)return;const g=M[mode].goal;[0,1].f
 function tabs(){
  $(&#x27;tabs&#x27;).innerHTML=Object.keys(M).map(k=&gt;`&lt;button class=&quot;tab ${k===mode?&#x27;on&#x27;:&#x27;&#x27;}&quot; data-m=&quot;${k}&quot;&gt;${M[k].n}&lt;/button&gt;`).join(&#x27;&#x27;);cchips();
 }
-function cchips(){const V=&#x27;&lt;button class=&quot;chip &#x27;+(vox?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-v=&quot;1&quot;&gt;🎙️ Voice&lt;/button&gt;&#x27;;$(&#x27;cls&#x27;).innerHTML=online?V:&#x27;&lt;span class=&quot;mut&quot;&gt;Cars:&lt;/span&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;super&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;super&quot;&gt;🏎️ Supercar&lt;/button&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;x4&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;x4&quot;&gt;🚙 4×4&lt;/button&gt;&lt;button class=&quot;chip &#x27;+(drive?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-d=&quot;1&quot;&gt;🕹️ I drive A&lt;/button&gt;&#x27;+V;$(&#x27;cls&#x27;).style.display=mode===&#x27;race&#x27;?&#x27;flex&#x27;:&#x27;none&#x27;}
+function cchips(){const V=&#x27;&lt;button class=&quot;chip &#x27;+(vox?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-v=&quot;1&quot;&gt;🎙️ Voice&lt;/button&gt;&#x27;;$(&#x27;cls&#x27;).innerHTML=online?V:&#x27;&lt;span class=&quot;mut&quot;&gt;Cars:&lt;/span&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;super&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;super&quot;&gt;🏎️ Supercar&lt;/button&gt;&lt;button class=&quot;chip &#x27;+(cls===&#x27;x4&#x27;?&#x27;on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-c=&quot;x4&quot;&gt;🚙 4×4&lt;/button&gt;&#x27;+V;$(&#x27;cls&#x27;).style.display=mode===&#x27;race&#x27;?&#x27;flex&#x27;:&#x27;none&#x27;}
 function chips(){
  $(&#x27;chips&#x27;).innerHTML=&#x27;&lt;span class=&quot;mut&quot;&gt;Stake:&lt;/span&gt;&#x27;+[50,100,250,500].map(s=&gt;`&lt;button class=&quot;chip ${s===stake?&#x27;on&#x27;:&#x27;&#x27;}&quot; data-s=&quot;${s}&quot;&gt;${s}&lt;/button&gt;`).join(&#x27;&#x27;);
 }
@@ -1583,9 +1610,9 @@ function run0(){
    if(fight){ if(Math.random()&lt;.6) m.v[1-i]+=Math.ceil(Math.random()*7)+s[i]*1.5; }
    else m.v[i]+=Math.floor(Math.random()*3)+(Math.random()&lt;s[i]*.13?1:0);
   }
-  update();
+  force(g,fight,false);update();
   if(mode===&#x27;race&#x27;)rx(t);const done=m.v[0]&gt;=g||m.v[1]&gt;=g||t&gt;=(mode===&#x27;race&#x27;?900:70);
-  if(done){clearInterval(id);finish();}
+  if(done){force(g,fight,true);update();clearInterval(id);finish();}
  },120);
 }
 function finish(){
@@ -1605,7 +1632,7 @@ function finish(){
   if(pick===r){d=drive&amp;&amp;mode===&#x27;race&#x27;?Math.round(stake/2):stake;msg=&#x27;🏆 &#x27;+w[1]+&#x27; wins! +&#x27;+d;cls=&#x27;win&#x27;}
   else{d=-stake;msg=w[1]+&#x27; wins. You lost &#x27;+stake;cls=&#x27;lose&#x27;}
  }
- coins+=d;if(coins&lt;=0){coins=1000;msg+=&#x27; · Out of coins: topped up to 1000&#x27;}
+ if(PEND){d=PEND.net;coins=PEND.coins;PEND=null;FORCE=null}else{coins+=d}
  if(mode===&#x27;race&#x27;){try{parent.postMessage({ap:1,g:&#x27;Race&#x27;,k:r,net:d,st:stake,picks:[pick],coins:coins},&#x27;*&#x27;)}catch(e){}}
  if(stake&gt;coins)stake=Math.min(stake,coins);
  save();chips();$(&#x27;res&#x27;).textContent=msg;$(&#x27;res&#x27;).className=&#x27;res &#x27;+cls;if(mode===&#x27;race&#x27;){setTimeout(()=&gt;showFin(r,d),900);fsay(r,x,y)}
@@ -1722,19 +1749,21 @@ function spUI(){const cnt={R:7,B:3,G:2,A:1},tally={R:0,B:0,G:0,A:0,X:0,H:0};SP.h
  $(&#x27;spacts&#x27;).innerHTML=&#x27;&lt;button class=&quot;chip&quot; data-sa=&quot;rep&quot;&#x27;+(SP.busy||!hl?&#x27; disabled&#x27;:&#x27;&#x27;)+&#x27;&gt;🔁 Repeat&lt;/button&gt;&lt;button class=&quot;chip&quot; data-sa=&quot;dbl&quot;&#x27;+bz+&#x27;&gt;×2 Stake&lt;/button&gt;&lt;button class=&quot;chip&quot; data-sa=&quot;clr&quot;&#x27;+bz+&#x27;&gt;✖ Clear&lt;/button&gt;&lt;button class=&quot;chip&#x27;+(SP.auto?&#x27; on&#x27;:&#x27;&#x27;)+&#x27;&quot; data-sa=&quot;auto&quot;&gt;⏩ Auto ×5&#x27;+(SP.auto?&#x27; (&#x27;+SP.auto+&#x27; left)&#x27;:&#x27;&#x27;)+&#x27;&lt;/button&gt;&#x27;;
  $(&#x27;spstat&#x27;).textContent=SP.n?&#x27;Spins &#x27;+SP.n+&#x27; · session &#x27;+(SP.pl&gt;0?&#x27;+&#x27;:&#x27;&#x27;)+SP.pl+&#x27; · best win +&#x27;+SP.best:&#x27;&#x27;;
  if(!SP.busy){$(&#x27;spgo&#x27;).textContent=n?&#x27;Spin · bet &#x27;+spTotal():&#x27;Spin&#x27;}}
+let SPP=null;
 function spSpin(){if(SP.busy)return;const res=$(&#x27;spres&#x27;);
  if(!SP.picks.size){SP.auto=0;res.textContent=&#x27;Pick at least one colour&#x27;;res.className=&#x27;res&#x27;;return}
  if(spTotal()&gt;coins){SP.auto=0;res.textContent=&#x27;Not enough coins: lower the stake or drop a colour&#x27;;res.className=&#x27;res lose&#x27;;return}
  SP.last={p:[...SP.picks],s:stake};SP.busy=true;SP.glow=null;SP.conf=[];$(&#x27;spgo&#x27;).disabled=true;$(&#x27;spgo&#x27;).textContent=&#x27;Spinning…&#x27;;res.textContent=&#x27;&#x27;;res.className=&#x27;res&#x27;;
- const u=new Uint32Array(1);crypto.getRandomValues(u);
- const win=u[0]%20,a=Math.PI*2/20,T=Math.PI*2,th0=SP.th,tgt=-(win+.5)*a+(Math.random()-.5)*a*.6,turns=6+Math.floor(Math.random()*3),
+ const go=win=&gt;{const a=Math.PI*2/20,T=Math.PI*2,th0=SP.th,tgt=-(win+.5)*a+(Math.random()-.5)*a*.6,turns=6+Math.floor(Math.random()*3),
   end=tgt+T*Math.ceil((th0+T*turns-tgt)/T);
- SP.anim={th0,end,t0:performance.now(),dur:5200,win,last:-1};spUI()}
+  SP.anim={th0,end,t0:performance.now(),dur:5200,win,last:-1};spUI()};
+ if(!parent.ARENA){const u=new Uint32Array(1);crypto.getRandomValues(u);go(u[0]%20);return}
+ parent.ARENA.spin([...SP.picks],stake).then(o=&gt;{SPP=o;go(o.win)}).catch(e=&gt;{SP.busy=false;SP.auto=0;$(&#x27;spgo&#x27;).disabled=false;res.textContent=e.message;res.className=&#x27;res lose&#x27;;spUI()})}
 function spDone(win){const k=SP.seg[win],f=SP.info[k],hit=SP.picks.has(k);
  // each picked colour risks one stake; the hit colour returns stake*p net, the others lose their stake
  const net=k===&#x27;H&#x27;?-Math.round(stake*SP.picks.size/2):(hit?stake*SP.mul[win]:0)-stake*(SP.picks.size-(hit?1:0));
- coins+=net;let msg=net&gt;0?&#x27;🏆 &#x27;+f.n+&#x27;! +&#x27;+net:k===&#x27;X&#x27;?&#x27;💥 Bust! Everything you bet is lost: -&#x27;+(-net):k===&#x27;H&#x27;?&#x27;½ Half back! You lose only half: -&#x27;+(-net):net===0?f.n+&#x27; came up. You broke even&#x27;:f.n+&#x27; came up. You lost &#x27;+(-net);
- if(coins&lt;=0){coins=1000;msg+=&#x27; · Out of coins: topped up to 1000&#x27;}
+ if(SPP){coins=SPP.coins;SPP=null}else coins+=net;let msg=net&gt;0?&#x27;🏆 &#x27;+f.n+&#x27;! +&#x27;+net:k===&#x27;X&#x27;?&#x27;💥 Bust! Everything you bet is lost: -&#x27;+(-net):k===&#x27;H&#x27;?&#x27;½ Half back! You lose only half: -&#x27;+(-net):net===0?f.n+&#x27; came up. You broke even&#x27;:f.n+&#x27; came up. You lost &#x27;+(-net);
+
  if(stake&gt;coins)stake=Math.max(1,Math.min(stake,coins));save();
  SP.hist=[k].concat(SP.hist).slice(0,50);SP.n++;SP.pl+=net;if(net&gt;SP.best)SP.best=net;
  if(net&lt;0&amp;&amp;!hit&amp;&amp;[SP.seg[(win+19)%20],SP.seg[(win+1)%20]].some(x=&gt;SP.picks.has(x)))msg+=&#x27; · So close!&#x27;;
@@ -1784,6 +1813,7 @@ document.addEventListener(&#x27;click&#x27;,e=&gt;{
  }
 });
 window.addEventListener(&#x27;message&#x27;,e=&gt;{const d=e.data;if(!d)return;if(d.ap===2){coins+=d.bonus;try{save();chips();spUI()}catch(x){}}else if(d.ap===4){coins=Math.max(0,Math.floor(+d.coins||0));try{if(stake&gt;coins)stake=Math.max(1,coins);save();chips();spUI()}catch(x){}}else if(d.ap===3&amp;&amp;SND!==d.on)$(&#x27;snd&#x27;).click()});
+try{parent.ARENA&amp;&amp;parent.ARENA.hello()}catch(e){}
 $(&#x27;spcv&#x27;).addEventListener(&#x27;click&#x27;,()=&gt;{const A=SP.anim;if(A&amp;&amp;A.dur&gt;800&amp;&amp;performance.now()-A.t0&gt;600){A.th0=SP.th;A.t0=performance.now();A.dur=700}});
 $(&#x27;snd&#x27;).onclick=()=&gt;{SND=!SND;$(&#x27;snd&#x27;).textContent=SND?&#x27;🔊&#x27;:&#x27;🔇&#x27;;if(!SND)engine(false)};tabs();chips();save();newMatch();spUI();spDraw();try{document.fonts.ready.then(()=&gt;spDraw())}catch(e){}try{$(&#x27;nm&#x27;).value=localStorage.getItem(&#x27;ap_name&#x27;)||&#x27;&#x27;}catch(e){}
 &lt;/script&gt;&lt;script&gt;setGame(&#x27;spin&#x27;)&lt;/script&gt;&lt;script&gt;document.getElementById(&#x27;rdsel&#x27;).addEventListener(&#x27;click&#x27;,function(e){var b=e.target.closest(&#x27;[data-rd]&#x27;);if(!b)return;window.ROAD=b.dataset.rd;[].forEach.call(b.parentNode.querySelectorAll(&#x27;[data-rd]&#x27;),function(x){x.classList.toggle(&#x27;on&#x27;,x===b)});if(!online&amp;&amp;busy!==true&amp;&amp;!SP.on)newMatch()})&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
@@ -1796,16 +1826,14 @@ $(&#x27;snd&#x27;).onclick=()=&gt;{SND=!SND;$(&#x27;snd&#x27;).textContent=SND?&
 
 <section class="pane" id="lb"><div class="chips" id="lbc"></div><div class="card"><div class="wrap"><table id="lbt"></table></div></div></section>
 <section class="pane" id="hi"><div class="grid" id="hk"></div><div class="chips" id="hf"></div><div class="card"><div class="wrap"><table id="ht"></table></div><p class="note">Your own bets from the Race and Spin tabs, saved in this browser.</p></div></section>
-<section class="pane" id="se"><div class="card"><h2>Theme</h2><div class="chips" id="sth"></div><h2>Sound</h2><div class="chips" id="ssn"></div><h2>My data</h2><button class="btn g" id="clr">Clear my history and bonus streak</button><p class="note" id="sm"></p></div></section>
-<section class="pane" id="wl"><div class="card" style="border-left:4px solid var(--ac)"><b>Demo wallet.</b> <span class="note" style="display:inline">Top up, exchange and withdraw are a demonstration. No real money is charged or sent, and coins have no cash value.</span></div><div class="grid" id="wk"></div><div class="card"><div class="chips" id="wtabs"></div>
-<div id="w-top"><label class="fl" for="wta">Amount to pay (GHS, whole cedis, min 10)</label><input class="fi" id="wta" type="number" min="10" step="1" inputmode="numeric" placeholder="10"><div class="chips" id="wq"><button class="chip" data-q="10">10</button><button class="chip" data-q="20">20</button><button class="chip" data-q="50">50</button><button class="chip" data-q="100">100</button></div>
-<label class="fl" for="wtm">Mobile money</label><select class="fi" id="wtm"><option>MTN MoMo</option><option>Telecel Cash</option><option>AirtelTigo Money</option></select><label class="fl" for="wtn">Mobile money number</label><input class="fi" id="wtn" type="tel" autocomplete="tel" placeholder="024 123 4567"><div class="pv" id="wtp"></div><button class="btn full" id="wtg">Top up</button></div>
-<div id="w-ex" hidden><label class="fl" for="wec">Coins to exchange</label><input class="fi" id="wec" type="number" min="1" step="1" inputmode="numeric" placeholder="0"><div class="chips"><button class="chip" id="wem">Max</button></div><div class="pv" id="wep"></div><button class="btn full" id="weg">Exchange to GHS</button></div>
-<div id="w-wd" hidden><div class="note" id="wwh"></div><label class="fl" for="wwa">Amount to withdraw (GHS)</label><input class="fi" id="wwa" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"><div class="chips"><button class="chip" id="wwm">Max</button></div>
-<label class="fl" for="wwt">Send to</label><select class="fi" id="wwt"><option>MTN MoMo</option><option>Telecel Cash</option><option>AirtelTigo Money</option></select><label class="fl" for="wwn">Mobile money number</label><input class="fi" id="wwn" type="tel" autocomplete="tel" placeholder="024 123 4567"><div class="pv" id="wwp"></div><button class="btn full" id="wwg">Withdraw</button></div>
-<p class="note" id="wmsg" role="status"></p></div>
-<div class="card"><h2>Wallet history</h2><div class="wrap"><table id="wtx"></table></div></div>
-<p class="note">GHS 1 = 10 coins · Minimum top up GHS 10 (100 coins) · Withdrawals cost a 4% fee · To withdraw, exchange coins to GHS first. Payments and payouts here are a simulation: no real money moves until this is connected to a mobile money provider.</p></section>
+<section class="pane" id="se"><div class="card"><h2>Theme</h2><div class="chips" id="sth"></div><h2>Sound</h2><div class="chips" id="ssn"></div><h2>My data</h2><button class="btn g" id="clr">Clear my history on this device</button><p class="note" id="sm"></p></div></section>
+<section class="pane" id="wl"><div class="grid" id="wk"></div>
+<div class="card"><h2>Buy coins</h2><div class="grid" id="packs"></div>
+<label class="fl" for="wem">Email for your receipt (optional)</label><input class="fi" id="wem" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+<p class="note" id="wlim"></p><p class="note" id="wmsg" role="status"></p></div>
+<div class="card"><h2>Coin history</h2><div class="wrap"><table id="wtx"></table></div></div>
+<div class="card" style="border-left:4px solid var(--ac)"><b>Please read.</b> <span class="note" style="display:inline">Coins are bought with real money (paid on Paystack) and used only inside Arena Picks. They have no cash value and cannot be refunded, withdrawn or exchanged for anything. Results are random and you can lose all your coins. 18+ only. Play within your means.</span></div>
+<div hidden><div class="chips" id="wtabs"></div><div id="w-top"></div><div id="w-ex"></div><div id="w-wd"></div><input id="wta"><input id="wec"><input id="wwa"><div id="wtp"></div><div id="wep"></div><div id="wwp"></div><div id="wwh"></div></div></section>
 <section class="pane" id="pl"><div class="card"><h2>Players</h2><div class="wrap"><table id="plt"></table></div></div></section>
 
 <script>
@@ -1895,9 +1923,47 @@ const fee=Math.round(p*FEE);WL.p-=p;wtx('Withdraw',0,-p,'Demo · Fee '+gh(fee)+'
 document.getElementById('wl').addEventListener('input',wprev);
 window.addEventListener('message',e=>{const m=e.data;if(m&&m.ap===1&&typeof m.coins==='number'){WC=m.coins;frames().forEach(w=>{if(w!==e.source)try{w.postMessage({ap:4,coins:WC},'*')}catch(x){}});walRender()}});
 const _r2=render;render=function(){_r2();walRender()};
+
+// ===== Real coin wallet: balance, bonus, purchases and every result live on the PawaOdds server =====
+const ARENA=(function(){
+ const API=((window.ODDSDAY_CONFIG||{}).apiUrl||'').replace(/\/$/,'');
+ async function api(path,opt){opt=opt||{};const t=(function(){try{return localStorage.getItem('oddsday_token')||''}catch(e){return ''}})();
+  const r=await fetch(API+path,{method:opt.method||'GET',credentials:'include',headers:Object.assign({'Content-Type':'application/json'},t?{Authorization:'Bearer '+t}:{}),body:opt.body?JSON.stringify(opt.body):undefined});
+  const j=await r.json().catch(function(){return{}});if(r.status===401){location.replace('/');throw new Error('Please sign in')}
+  if(!r.ok)throw new Error(j.error||'Something went wrong');return j}
+ return{api:api,
+  spin:function(picks,stake){return api('/api/arena/spin',{method:'POST',body:{picks:picks,stake:stake}})},
+  race:function(pick,stake){return api('/api/arena/race',{method:'POST',body:{pick:pick,stake:stake}})},
+  hello:function(){if(LOADED)post({ap:4,coins:WC})}}})();
+window.ARENA=ARENA; // the game frames call parent.ARENA
+let LOADED=false,BON={can:false,amount:5,streak:0},PACKS=[],WLIM=null,WTX=[],LDR=[],WCUR='GHS',PAYON=false;
+WC=0;
+function wmsg2(t,ok){const e=$('wmsg');e.textContent=t||'';e.className='note '+(ok?'pos':t?'neg':'')}
+async function loadWallet(){try{const w=await ARENA.api('/api/arena/wallet');WC=w.coins;BON=w.bonus;PACKS=w.packs;WLIM=w.limit;WTX=w.tx;WCUR=w.currency;PAYON=w.enabled;LOADED=true;post({ap:4,coins:WC});bn();render()}catch(e){wmsg2(e.message)}}
+async function loadLeaders(){try{LDR=(await ARENA.api('/api/arena/leaders')).leaders;lead()}catch(e){}}
+bn=function(){$('bn').innerHTML='<div><div class="k">Daily bonus</div><div class="v">'+(BON.can?'+'+BON.amount+' coins ready':'Claimed today')+'</div><div class="note">Streak: '+BON.streak+' day(s). Claim '+BON.amount+' free coins every day.</div></div><button class="btn" id="claim"'+(BON.can?'':' disabled style="opacity:.5"')+'>'+(BON.can?'Claim bonus':'Come back tomorrow')+'</button>'};
+claim=async function(){try{const r=await ARENA.api('/api/arena/bonus',{method:'POST'});WC=r.coins;BON.can=false;BON.streak=r.streak;post({ap:4,coins:WC});await loadWallet()}catch(e){wmsg2(e.message)}};
+walRender=function(){const c=kp('Coins','🪙 '+WC.toLocaleString());$('hb').innerHTML=c;$('wk').innerHTML=c;
+ $('packs').innerHTML=PACKS.map(function(k){return '<button class="btn" data-pack="'+k.price+'"'+(PAYON?'':' disabled')+'>'+WCUR+' '+k.price+'<br><small>🪙 '+k.coins.toLocaleString()+'</small></button>'}).join('');
+ $('wlim').textContent=PAYON?(WLIM?'Daily buying limit: '+WCUR+' '+WLIM.daily+' (you can still buy '+WCUR+' '+WLIM.left+' today). You pay on Paystack with mobile money or card.':''):'Buying coins is not open yet.';
+ $('wtx').innerHTML='<tr><th>When</th><th>What</th><th>Coins</th></tr>'+(WTX.length?WTX.map(function(x){return '<tr><td>'+new Date(x.created_at.replace(' ','T')+'Z').toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</td><td>'+wesc(x.kind)+(x.note?'<br><small>'+wesc(x.note)+'</small>':'')+'</td><td class="'+cl(x.delta)+'">'+f(x.delta)+'</td></tr>'}).join(''):'<tr><td colspan="3">Nothing yet.</td></tr>')};
+lead=function(){$('lbc').innerHTML='';$('lbt').innerHTML='<tr><th></th><th>Player</th><th>Coins</th><th>Won / lost</th><th>Best win</th></tr>'+(LDR.length?LDR.map(function(p,i){return '<tr class="'+(p.me?'me':'')+'"><td>'+(i+1)+'</td><td>'+wesc(p.name)+(p.me?' (you)':'')+'</td><td>'+p.coins.toLocaleString()+'</td><td class="'+cl(p.pl)+'">'+f(p.pl)+'</td><td>'+(p.best>0?'+'+p.best.toLocaleString():'-')+'</td></tr>'}).join(''):'<tr><td colspan="5">No players yet.</td></tr>')};
+document.addEventListener('click',async function(e){
+ const k=e.target.closest('[data-pack]');if(k){k.disabled=true;wmsg2('Opening Paystack…',1);
+  try{const r=await ARENA.api('/api/arena/buy',{method:'POST',body:{price:+k.dataset.pack,email:$('wem').value.trim(),returnUrl:location.origin+'/arena.html'}});try{sessionStorage.setItem('arena_pay',r.reference)}catch(x){}location.href=r.url}
+  catch(err){wmsg2(err.message);k.disabled=false}return}
+ if(e.target.closest('.tab[data-t=lb]'))loadLeaders();
+ if(e.target.closest('.tab[data-t=wl]'))loadWallet()});
+// Back from Paystack: confirm the payment with the server before showing the new balance.
+(async function(){const q=new URLSearchParams(location.search);let ref=q.get('reference')||q.get('trxref');try{ref=ref||sessionStorage.getItem('arena_pay')}catch(x){}
+ if(!ref||!/^AC-/.test(ref))return;
+ try{sessionStorage.removeItem('arena_pay')}catch(x){}history.replaceState(null,'',location.pathname);
+ try{const r=await ARENA.api('/api/arena/verify',{method:'POST',body:{reference:ref}});document.querySelector('.tab[data-t=wl]').click();
+  wmsg2(r.paid?'Payment received. Your coins have been added.':'Payment not completed yet ('+r.state+'). If you paid, your coins will appear within a few minutes.',r.paid)}catch(err){wmsg2(err.message)}})();
+setInterval(function(){if(document.querySelector('#lb.on'))loadLeaders()},30000);
 // Only signed-in PawaOdds users play: send everyone else to the sign-in page.
 (function(){try{var c=(window.ODDSDAY_CONFIG||{}).apiUrl||'',t=localStorage.getItem('oddsday_token')||'';
 fetch(c+'/api/me',{headers:t?{Authorization:'Bearer '+t}:{},credentials:'include'}).then(function(r){if(!r.ok)location.replace('/')}).catch(function(){})}catch(e){}})();
-init();render();bn();
+init();render();bn();loadWallet();loadLeaders();
 
 </script></main></body></html>

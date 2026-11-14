@@ -42,7 +42,10 @@ router.post('/paystack/webhook', async (req, res) => {
   if (!premium.webhookValid(req.rawBody, req.get('x-paystack-signature'))) return res.sendStatus(401);
   res.sendStatus(200); // answer fast; Paystack retries on anything but 200
   try {
-    if (req.body && req.body.event === 'charge.success' && req.body.data && req.body.data.reference) await premium.verify(req.body.data.reference);
+    if (req.body && req.body.event === 'charge.success' && req.body.data && req.body.data.reference) {
+      const ref = String(req.body.data.reference);
+      if (ref.startsWith('AC-')) await require('../arena').verify(ref); else await premium.verify(ref);
+    }
   } catch (e) { console.error('paystack webhook:', e.message); }
 });
 

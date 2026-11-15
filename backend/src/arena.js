@@ -1,5 +1,5 @@
 // Arena Picks: the coin wallet and the games' results live on the server, so a coin can only be had by buying it,
-// claiming the daily bonus or winning it. Coins have no cash value: they cannot be withdrawn or exchanged for anything.
+// claiming the daily bonus or winning it. Free coins (daily bonus) can be played but never cashed out.
 const crypto = require('crypto');
 const db = require('./db');
 const config = require('./config');
@@ -15,12 +15,20 @@ const yesterday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 const ensure = db.transaction(userId => {
   let w = db.prepare('SELECT * FROM arena_wallets WHERE user_id = ?').get(userId);
   if (!w) {
-    db.prepare('INSERT INTO arena_wallets (user_id, coins) VALUES (?, ?)').run(userId, A.welcomeCoins);
-    db.prepare("INSERT INTO arena_tx (user_id, kind, delta, note) VALUES (?, 'Welcome gift', ?, 'Free starting coins')").run(userId, A.welcomeCoins);
+    db.prepare('INSERT INTO arena_wallets (user_id, coins, free) VALUES (?, ?, ?)').run(userId, A.welcomeCoins, A.welcomeCoins);
+    if (A.welcomeCoins > 0) db.prepare("INSERT INTO arena_tx (user_id, kind, delta, note) VALUES (?, 'Welcome gift', ?, 'Free starting coins')").run(userId, A.welcomeCoins);
     w = db.prepare('SELECT * FROM arena_wallets WHERE user_id = ?').get(userId);
   }
   return w;
 });
+// Free coins (welcome gift, daily bonus) can be played but never turned into cash. They are spent first; what they win stays free in proportion.
+function settleRound(userId, w, total, net) {
+  const F = Math.min(w.free, total), back = total + net;
+  const free = w.free - F + (total > 0 ? Math.round(back * F / total) : 0);
+  const coins = change(userId, net);
+  db.prepare('UPDATE arena_wallets SET free = ?, wagered = wagered + ? WHERE user_id = ?').run(Math.max(0, Math.min(free, coins)), total - F, userId);
+  return coins;
+}
 const change = (userId, delta, kind, note) => {
   db.prepare('UPDATE arena_wallets SET coins = coins + ? WHERE user_id = ?').run(delta, userId);
   if (kind) db.prepare('INSERT INTO arena_tx (user_id, kind, delta, note) VALUES (?,?,?,?)').run(userId, kind, delta, note || null);
@@ -41,7 +49,7 @@ function cashoutInfo(userId, w) {
   const kyc = db.prepare('SELECT full_name, dob FROM arena_kyc WHERE user_id = ?').get(userId), u = db.prepare('SELECT phone FROM users WHERE id = ?').get(userId);
   const need = Math.ceil(w.bought * CO.turnover);
   return {
-    enabled: true, cash: w.cash, currency: cur(), coinsPerUnit: CO.coinsPerUnit, feePct: CO.feePct, min: CO.min, networks: NETWORKS,
+    enabled: true, cash: w.cash, convertible: Math.max(0, w.coins - w.free), currency: cur(), coinsPerUnit: CO.coinsPerUnit, feePct: CO.feePct, min: CO.min, networks: NETWORKS,
     dailyLeft: Math.max(0, CO.dailyLimit * 100 - withdrawnToday(userId)), manual: CO.method === 'manual',
     playThrough: { needed: need, played: w.wagered, ok: w.wagered >= need },
     kyc: kyc ? { name: kyc.full_name, dob: kyc.dob } : null, number: localNumber(u && u.phone),
@@ -53,7 +61,7 @@ function wallet(userId) {
   const w = ensure(userId), can = w.bonus_day !== today();
   const streak = w.bonus_day === yesterday() ? w.streak : w.bonus_day === today() ? w.streak : 0;
   return {
-    coins: w.coins, currency: config.paystack.currency, enabled: premium.enabled(),
+    coins: w.coins, free: w.free, currency: config.paystack.currency, enabled: premium.enabled(),
     bonus: { can, amount: A.dailyBonus, streak },
     packs: A.packs.map(price => ({ price, coins: Math.round(price * A.coinsPerUnit) })), coinsPerUnit: A.coinsPerUnit,
     limit: { daily: A.dailyLimit, left: Math.max(0, A.dailyLimit - boughtToday(userId)) },
@@ -66,7 +74,7 @@ const claimBonus = db.transaction(userId => {
   const w = ensure(userId);
   if (w.bonus_day === today()) throw fail('You already claimed today. Come back tomorrow.', 409);
   const streak = w.bonus_day === yesterday() ? w.streak + 1 : 1;
-  db.prepare('UPDATE arena_wallets SET bonus_day = ?, streak = ? WHERE user_id = ?').run(today(), streak, userId);
+  db.prepare('UPDATE arena_wallets SET bonus_day = ?, streak = ?, free = free + ? WHERE user_id = ?').run(today(), streak, A.dailyBonus, userId);
   return { coins: change(userId, A.dailyBonus, 'Daily bonus', `Day ${streak} streak`), streak };
 });
 
@@ -86,8 +94,7 @@ const spin = db.transaction((userId, picks, stake) => {
   if (w.coins < total) throw fail('Not enough coins: lower the stake or drop a colour');
   const win = rint(20), k = SEG[win], hit = picks.includes(k);
   const net = k === 'H' ? -Math.round(total / 2) : (hit ? stake * MUL[win] : 0) - stake * (picks.length - (hit ? 1 : 0));
-  const coins = change(userId, net);
-  db.prepare('UPDATE arena_wallets SET wagered = wagered + ? WHERE user_id = ?').run(total, userId);
+  const coins = settleRound(userId, w, total, net);
   db.prepare('INSERT INTO arena_rounds (user_id, game, stake, detail, net) VALUES (?,?,?,?,?)').run(userId, 'Spin', total, JSON.stringify({ picks, win, k }), net);
   return { win, k, net, coins };
 });
@@ -100,8 +107,7 @@ const race = db.transaction((userId, pick, stake) => {
   if (w.coins < stake) throw fail('Not enough coins: lower the stake');
   const x = rint(100), r = x < 45 ? 'A' : x < 90 ? 'B' : 'D';
   const net = r === 'D' ? (pick === 'D' ? stake * 8 : 0) : (pick === r ? Math.round(stake * 0.9) : -stake);
-  const coins = change(userId, net);
-  db.prepare('UPDATE arena_wallets SET wagered = wagered + ? WHERE user_id = ?').run(stake, userId);
+  const coins = settleRound(userId, w, stake, net);
   db.prepare('INSERT INTO arena_rounds (user_id, game, stake, detail, net) VALUES (?,?,?,?,?)').run(userId, 'Race', stake, JSON.stringify({ pick, r }), net);
   return { r, net, coins };
 });
@@ -190,6 +196,7 @@ const convert = db.transaction((userId, coins) => {
   if (!(coins >= CO.coinsPerUnit)) throw fail(`The smallest conversion is ${CO.coinsPerUnit} coins`);
   const w = ensure(userId);
   if (w.coins < coins) throw fail('You do not have that many coins');
+  if (coins > w.coins - w.free) throw fail(`Free coins (sign-up and daily bonus) can be played but not converted to cash. You can convert up to ${Math.max(0, w.coins - w.free).toLocaleString()} coins.`);
   const cash = Math.floor(coins * 100 / CO.coinsPerUnit), used = Math.ceil(cash * CO.coinsPerUnit / 100); // whole pesewas only, no rounding in the player's favour
   db.prepare('UPDATE arena_wallets SET cash = cash + ? WHERE user_id = ?').run(cash, userId);
   change(userId, -used, 'Converted to cash', money(cash));
@@ -233,6 +240,8 @@ async function approve(id, by) {
   const w = db.prepare('SELECT * FROM arena_withdrawals WHERE id = ?').get(id);
   if (!w) throw fail('Withdrawal not found', 404);
   if (w.status !== 'pending') throw fail('This withdrawal was already decided', 409);
+  const ub = db.prepare('SELECT blocked FROM users WHERE id = ?').get(w.user_id);
+  if (!ub || ub.blocked) throw fail('This account is blocked. Reject the withdrawal instead.', 409);
   if (CO.method === 'manual') { db.prepare("UPDATE arena_withdrawals SET status = 'approved', decided_at = datetime('now'), decided_by = ? WHERE id = ?").run(by, id); return { status: 'approved' }; }
   // Automatic payout through Paystack Transfers. Claim it first so a double click cannot pay twice.
   if (!db.prepare("UPDATE arena_withdrawals SET status = 'processing', decided_at = datetime('now'), decided_by = ? WHERE id = ? AND status = 'pending'").run(by, id).changes) throw fail('This withdrawal was already decided', 409);

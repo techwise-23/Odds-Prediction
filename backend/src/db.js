@@ -258,7 +258,11 @@ CREATE INDEX IF NOT EXISTS idx_arena_rounds_user ON arena_rounds(user_id, id);
 // Arena cash-out: cash balance, play-through tracking, player details and withdrawal requests.
 {
   const wc = db.prepare('PRAGMA table_info(arena_wallets)').all().map(c => c.name);
-  for (const [n, d] of [['cash', 0], ['bought', 0], ['wagered', 0]]) if (!wc.includes(n)) db.exec(`ALTER TABLE arena_wallets ADD COLUMN ${n} INTEGER NOT NULL DEFAULT ${d}`);
+  for (const [n, d] of [['cash', 0], ['bought', 0], ['wagered', 0], ['free', 0]]) if (!wc.includes(n)) db.exec(`ALTER TABLE arena_wallets ADD COLUMN ${n} INTEGER NOT NULL DEFAULT ${d}`);
+  if (!wc.includes('free')) { // one-time: coins that came from the welcome gift and daily bonus are 'free' (playable, not convertible); past purchases count towards play-through
+    db.exec(`UPDATE arena_wallets SET free = MIN(coins, COALESCE((SELECT SUM(delta) FROM arena_tx t WHERE t.user_id = arena_wallets.user_id AND t.kind IN ('Welcome gift','Daily bonus')), 0))`);
+    db.exec(`UPDATE arena_wallets SET bought = COALESCE((SELECT SUM(delta) FROM arena_tx t WHERE t.user_id = arena_wallets.user_id AND t.kind = 'Bought coins'), 0) WHERE bought = 0`);
+  }
   db.exec(`
   CREATE TABLE IF NOT EXISTS arena_kyc (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, full_name TEXT NOT NULL, dob TEXT NOT NULL, confirmed_at TEXT NOT NULL DEFAULT (datetime('now')));
   CREATE TABLE IF NOT EXISTS arena_withdrawals (

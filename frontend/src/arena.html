@@ -96,7 +96,7 @@ th{color:var(--ac)}.v:not(.pos):not(.neg){color:var(--ac2)}
 <div class="card gc"><h3>🏁 Race</h3><p class="note" style="margin:0 0 12px">Pick Car A, Car B or Draw and watch the race.</p><button class="btn" data-t="rc">Play Race</button></div>
 <div class="card gc s"><h3>🎡 Spin</h3><p class="note" style="margin:0 0 12px">Bet on your colours and spin the wheel.</p><button class="btn" data-t="sp">Play Spin</button></div></div>
 <p class="note">Your bets and results are in the History tab.</p>
-<div class="card" style="border-left:4px solid var(--ac)"><b>Coins only.</b> <span class="note" id="hnote" style="display:inline">You start with free coins and get a daily bonus. You can also buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.</span></div></section>
+<div class="card" style="border-left:4px solid var(--ac)"><b>Coins only.</b> <span class="note" id="hnote" style="display:inline">You get a small free daily bonus and can buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.</span></div></section>
 
 <section class="pane" id="rc"><iframe class="gf" id="fr" title="Race game" srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;
@@ -183,7 +183,7 @@ main&gt;header,main&gt;.tabs{grid-column:1/3}.tabs+.card{grid-column:1;grid-row:
 #gsw{grid-column:1/3;margin:0 0 10px}#spinCard{display:none}main.sp&gt;.card{display:none}main.sp&gt;#spinCard{display:block;grid-column:1/3!important;grid-row:auto!important}#spcv{display:block;width:100%;max-width:360px;margin:0 auto;aspect-ratio:1}#sphist{min-height:16px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .chip:disabled{opacity:.4}#spacts{justify-content:center}#spstat{text-align:center}
 &lt;/style&gt;&lt;style&gt;#gsw,#tabs{display:none!important}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;main&gt;
-&lt;header&gt;&lt;h1&gt;Arena &lt;em&gt;Picks&lt;/em&gt;&lt;/h1&gt;&lt;div style=&quot;display:flex;gap:8px;align-items:center&quot;&gt;&lt;button class=&quot;chip&quot; id=&quot;snd&quot;&gt;🔊&lt;/button&gt;&lt;div class=&quot;coins&quot;&gt;🪙 &lt;span id=&quot;coins&quot;&gt;1000&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/header&gt;
+&lt;header&gt;&lt;h1&gt;Arena &lt;em&gt;Picks&lt;/em&gt;&lt;/h1&gt;&lt;div style=&quot;display:flex;gap:8px;align-items:center&quot;&gt;&lt;button class=&quot;chip&quot; id=&quot;snd&quot;&gt;🔊&lt;/button&gt;&lt;div class=&quot;coins&quot;&gt;🪙 &lt;span id=&quot;coins&quot;&gt;0&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/header&gt;
 &lt;div class=&quot;chips&quot; id=&quot;gsw&quot;&gt;&lt;span class=&quot;mut&quot;&gt;Game:&lt;/span&gt;&lt;button class=&quot;chip on&quot; data-sg=&quot;race&quot;&gt;🏁 Race&lt;/button&gt;&lt;button class=&quot;chip&quot; data-sg=&quot;spin&quot;&gt;🎡 Spin&lt;/button&gt;&lt;/div&gt;
 &lt;div class=&quot;tabs&quot; id=&quot;tabs&quot;&gt;&lt;/div&gt;
 &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;lanes&quot;&gt;&lt;/div&gt;&lt;div id=&quot;cmt&quot;&gt;🎙️ Pick your winner, then hit Start.&lt;/div&gt;&lt;div class=&quot;res&quot; id=&quot;res&quot;&gt;&lt;/div&gt;&lt;div id=&quot;gaswrap&quot; style=&quot;display:none&quot;&gt;&lt;button class=&quot;gas&quot; id=&quot;gas&quot;&gt;⛽ HOLD TO ACCELERATE&lt;/button&gt;&lt;small&gt;You drive San (A): hold to speed up, but don’t overheat. Wins pay half.&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
@@ -217,7 +217,7 @@ race:{n:&#x27;🏁 Race&#x27;,goal:640,pool:[[&#x27;🛻&#x27;,&#x27;Mud Beast&#
 };
 M.race.pool=[[&#x27;W#e8590c&#x27;,&#x27;Inferno GT&#x27;,5],[&#x27;W#1c7ed6&#x27;,&#x27;Volt Wedge&#x27;,5],[&#x27;U#f2b600&#x27;,&#x27;Bruto SUV&#x27;,4],[&#x27;M#2a2a2e&#x27;,&#x27;Fury Muscle&#x27;,4],[&#x27;S#e8e8e8&#x27;,&#x27;Alpine 4x4&#x27;,2]];
 const CLP={super:[[&#x27;W#e8590c&#x27;,&#x27;Inferno GT&#x27;,5],[&#x27;W#1c7ed6&#x27;,&#x27;Volt Wedge&#x27;,5],[&#x27;W#c92a2a&#x27;,&#x27;Crimson R&#x27;,4],[&#x27;W#f2b600&#x27;,&#x27;Solar GT&#x27;,4]],x4:[[&#x27;S#e8e8e8&#x27;,&#x27;Alpine 4x4&#x27;,4],[&#x27;S#2b6e3f&#x27;,&#x27;Ridge Runner&#x27;,4],[&#x27;S#c9a227&#x27;,&#x27;Dune King&#x27;,3],[&#x27;S#7a3b1d&#x27;,&#x27;Rust Titan&#x27;,5]]};
-let mode=&#x27;race&#x27;,pick=null,stake=100,coins=1000,busy=false,m=null,cls=&#x27;super&#x27;;
+let mode=&#x27;race&#x27;,pick=null,stake=100,coins=0,busy=false,m=null,cls=&#x27;super&#x27;;
 try{const c=localStorage.getItem(&#x27;ap_coins&#x27;);if(c!==null&amp;&amp;+c&gt;0)coins=+c}catch(e){}
 const $=id=&gt;document.getElementById(id);
 function save(){$(&#x27;coins&#x27;).textContent=coins;try{localStorage.setItem(&#x27;ap_coins&#x27;,coins)}catch(e){}}
@@ -829,7 +829,7 @@ function runOn(){$(&#x27;lanes&#x27;).classList.add(&#x27;run&#x27;);$(&#x27;go&
 function finishO(d){m.v=d.v.slice();$(&#x27;lanes&#x27;).classList.remove(&#x27;run&#x27;);engine(false);
  const w=d.w,n=m.n,won=pick===String(w),stk=net.stk,nmw=m.nm[w],dl=won?stk*(n-1):-stk;
  coins+=dl;let msg=won?&#x27;\ud83c\udfc6 &#x27;+nmw+&#x27; wins! +&#x27;+dl:nmw+&#x27; wins. You lost &#x27;+stk;
- if(coins&lt;=0){coins=1000;msg+=&#x27; \u00b7 Out of coins: topped up to 1000&#x27;}
+ if(coins&lt;50)msg+=&#x27; · Low on coins: buy more in the Wallet&#x27;
  if(stake&gt;coins)stake=Math.min(stake,coins);save();chips();
  $(&#x27;res&#x27;).textContent=msg;$(&#x27;res&#x27;).className=&#x27;res &#x27;+(won?&#x27;win&#x27;:&#x27;lose&#x27;);
  setTimeout(()=&gt;showFinO(nmw,won,dl),900);
@@ -1046,7 +1046,7 @@ main&gt;header,main&gt;.tabs{grid-column:1/3}.tabs+.card{grid-column:1;grid-row:
 #gsw{grid-column:1/3;margin:0 0 10px}#spinCard{display:none}main.sp&gt;.card{display:none}main.sp&gt;#spinCard{display:block;grid-column:1/3!important;grid-row:auto!important}#spcv{display:block;width:100%;max-width:360px;margin:0 auto;aspect-ratio:1}#sphist{min-height:16px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .chip:disabled{opacity:.4}#spacts{justify-content:center}#spstat{text-align:center}
 &lt;/style&gt;&lt;style&gt;#gsw,#tabs{display:none!important}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;main&gt;
-&lt;header&gt;&lt;h1&gt;Arena &lt;em&gt;Picks&lt;/em&gt;&lt;/h1&gt;&lt;div style=&quot;display:flex;gap:8px;align-items:center&quot;&gt;&lt;button class=&quot;chip&quot; id=&quot;snd&quot;&gt;🔊&lt;/button&gt;&lt;div class=&quot;coins&quot;&gt;🪙 &lt;span id=&quot;coins&quot;&gt;1000&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/header&gt;
+&lt;header&gt;&lt;h1&gt;Arena &lt;em&gt;Picks&lt;/em&gt;&lt;/h1&gt;&lt;div style=&quot;display:flex;gap:8px;align-items:center&quot;&gt;&lt;button class=&quot;chip&quot; id=&quot;snd&quot;&gt;🔊&lt;/button&gt;&lt;div class=&quot;coins&quot;&gt;🪙 &lt;span id=&quot;coins&quot;&gt;0&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/header&gt;
 &lt;div class=&quot;chips&quot; id=&quot;gsw&quot;&gt;&lt;span class=&quot;mut&quot;&gt;Game:&lt;/span&gt;&lt;button class=&quot;chip on&quot; data-sg=&quot;race&quot;&gt;🏁 Race&lt;/button&gt;&lt;button class=&quot;chip&quot; data-sg=&quot;spin&quot;&gt;🎡 Spin&lt;/button&gt;&lt;/div&gt;
 &lt;div class=&quot;tabs&quot; id=&quot;tabs&quot;&gt;&lt;/div&gt;
 &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;lanes&quot;&gt;&lt;/div&gt;&lt;div id=&quot;cmt&quot;&gt;🎙️ Pick your winner, then hit Start.&lt;/div&gt;&lt;div class=&quot;res&quot; id=&quot;res&quot;&gt;&lt;/div&gt;&lt;div id=&quot;gaswrap&quot; style=&quot;display:none&quot;&gt;&lt;button class=&quot;gas&quot; id=&quot;gas&quot;&gt;⛽ HOLD TO ACCELERATE&lt;/button&gt;&lt;small&gt;You drive San (A): hold to speed up, but don’t overheat. Wins pay half.&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
@@ -1080,7 +1080,7 @@ race:{n:&#x27;🏁 Race&#x27;,goal:640,pool:[[&#x27;🛻&#x27;,&#x27;Mud Beast&#
 };
 M.race.pool=[[&#x27;W#e8590c&#x27;,&#x27;Inferno GT&#x27;,5],[&#x27;W#1c7ed6&#x27;,&#x27;Volt Wedge&#x27;,5],[&#x27;U#f2b600&#x27;,&#x27;Bruto SUV&#x27;,4],[&#x27;M#2a2a2e&#x27;,&#x27;Fury Muscle&#x27;,4],[&#x27;S#e8e8e8&#x27;,&#x27;Alpine 4x4&#x27;,2]];
 const CLP={super:[[&#x27;W#e8590c&#x27;,&#x27;Inferno GT&#x27;,5],[&#x27;W#1c7ed6&#x27;,&#x27;Volt Wedge&#x27;,5],[&#x27;W#c92a2a&#x27;,&#x27;Crimson R&#x27;,4],[&#x27;W#f2b600&#x27;,&#x27;Solar GT&#x27;,4]],x4:[[&#x27;S#e8e8e8&#x27;,&#x27;Alpine 4x4&#x27;,4],[&#x27;S#2b6e3f&#x27;,&#x27;Ridge Runner&#x27;,4],[&#x27;S#c9a227&#x27;,&#x27;Dune King&#x27;,3],[&#x27;S#7a3b1d&#x27;,&#x27;Rust Titan&#x27;,5]]};
-let mode=&#x27;race&#x27;,pick=null,stake=100,coins=1000,busy=false,m=null,cls=&#x27;super&#x27;;
+let mode=&#x27;race&#x27;,pick=null,stake=100,coins=0,busy=false,m=null,cls=&#x27;super&#x27;;
 try{const c=localStorage.getItem(&#x27;ap_coins&#x27;);if(c!==null&amp;&amp;+c&gt;0)coins=+c}catch(e){}
 const $=id=&gt;document.getElementById(id);
 function save(){$(&#x27;coins&#x27;).textContent=coins;try{localStorage.setItem(&#x27;ap_coins&#x27;,coins)}catch(e){}}
@@ -1692,7 +1692,7 @@ function runOn(){$(&#x27;lanes&#x27;).classList.add(&#x27;run&#x27;);$(&#x27;go&
 function finishO(d){m.v=d.v.slice();$(&#x27;lanes&#x27;).classList.remove(&#x27;run&#x27;);engine(false);
  const w=d.w,n=m.n,won=pick===String(w),stk=net.stk,nmw=m.nm[w],dl=won?stk*(n-1):-stk;
  coins+=dl;let msg=won?&#x27;\ud83c\udfc6 &#x27;+nmw+&#x27; wins! +&#x27;+dl:nmw+&#x27; wins. You lost &#x27;+stk;
- if(coins&lt;=0){coins=1000;msg+=&#x27; \u00b7 Out of coins: topped up to 1000&#x27;}
+ if(coins&lt;50)msg+=&#x27; · Low on coins: buy more in the Wallet&#x27;
  if(stake&gt;coins)stake=Math.min(stake,coins);save();chips();
  $(&#x27;res&#x27;).textContent=msg;$(&#x27;res&#x27;).className=&#x27;res &#x27;+(won?&#x27;win&#x27;:&#x27;lose&#x27;);
  setTimeout(()=&gt;showFinO(nmw,won,dl),900);
@@ -1968,12 +1968,12 @@ let CO=null;
 const cmoney=function(m){return WCUR+' '+(m/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})};
 function noteRender(){const on=CO&&CO.enabled;
  $('wnote').textContent=on?'Coins are bought with real money (paid on Paystack). You can convert coins to cash and withdraw to your own mobile money number, with a '+CO.feePct+'% fee, after age and play-through checks and an approval by our team. Bought coins cannot be refunded. Results are random and you can lose all your coins. 18+ only. Play within your means.':'Coins are bought with real money (paid on Paystack) and used only inside Arena Picks. They have no cash value and cannot be refunded, withdrawn or exchanged for anything. Results are random and you can lose all your coins. 18+ only. Play within your means.';
- $('hnote').textContent=on?'You start with free coins and get a daily bonus. You can buy coins, and convert coins to cash and withdraw once you have confirmed your details. 18+ only.':'You start with free coins and get a daily bonus. You can also buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.'}
+ $('hnote').textContent=on?'You get a small free daily bonus and can buy coins. Bought and won coins can be converted to cash and withdrawn once you have confirmed your details. Bonus coins can be played but not converted. 18+ only.':'You get a small free daily bonus and can buy coins. Coins have no cash value and cannot be withdrawn or exchanged. 18+ only.'}
 const STATUS={pending:'Waiting for approval',approved:'Approved, being paid',processing:'Being paid',paid:'Paid',rejected:'Declined',failed:'Failed, cash returned'};
 function coRender(){const c=CO,box=$('co');if(!c||!c.enabled){box.innerHTML='';return}
  const act=document.activeElement;if(act&&box.contains(act)&&/INPUT|SELECT/.test(act.tagName))return; // do not wipe what the player is typing
  let h='<div class="card"><h2>Cash out</h2><div class="grid">'+kp('Cash balance',cmoney(c.cash))+'</div>'+
-  '<p class="note">Rate: '+c.coinsPerUnit+' coins = '+WCUR+' 1.</p>'+
+  '<p class="note">Rate: '+c.coinsPerUnit+' coins = '+WCUR+' 1. You can convert up to <b>'+c.convertible.toLocaleString()+'</b> coins. Free bonus coins can be played but not converted.</p>'+
   '<label class="fl" for="cvc">Coins to convert</label><input class="fi" id="cvc" type="number" inputmode="numeric" min="'+c.coinsPerUnit+'" placeholder="e.g. 500">'+
   '<p class="note" id="cvp"></p><button class="btn" id="cvg">Convert to cash</button>';
  h+='<h2 style="margin-top:18px">Withdraw</h2>';

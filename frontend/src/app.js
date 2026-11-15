@@ -50,7 +50,10 @@ function setAuthMode(mode) {
   const reg = mode === 'register';
   $$('.auth-switch button').forEach(b => b.setAttribute('aria-selected', b.dataset.mode === mode));
   $('#auth-title').textContent = reg ? 'Create your free account' : 'Welcome back';
-  $('#auth-sub').textContent = reg ? 'Just your phone number. No password, no email.' : 'Enter your phone number to log in.';
+  $('#auth-sub').textContent = reg ? 'Your phone number and a PIN you choose. No email needed.' : 'Enter your phone number and PIN to log in.';
+  $('#pin-label').innerHTML = reg ? 'Choose a PIN <small>(4 to 6 digits)</small>' : 'Your PIN';
+  $('#auth-form [name=pin]').autocomplete = reg ? 'new-password' : 'current-password';
+  $('#pin-help').hidden = reg;
   $('#auth-form [type=submit]').textContent = reg ? 'Sign up' : 'Log in';
   $('#ref-field').hidden = !reg;
   $('#auth-alt-text').textContent = reg ? 'Already have an account?' : 'New to PawaOdds?';
@@ -58,6 +61,7 @@ function setAuthMode(mode) {
   $('.form-error').textContent = '';
 }
 $('#auth-alt').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
+$('#auth-form [name=pin]').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); });
 $('#auth-form [name=phone]').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^\d+\s\-()]/g, ''); });
 $$('.auth-switch button').forEach(b => b.addEventListener('click', () => setAuthMode(b.dataset.mode)));
 
@@ -66,7 +70,7 @@ $('#auth-form').addEventListener('submit', async e => {
   const f = new FormData(e.target), btn = $('#auth-form [type=submit]');
   btn.disabled = true; $('.form-error').textContent = '';
   try {
-    const body = { phone: f.get('phone') };
+    const body = { phone: f.get('phone'), pin: String(f.get('pin') || '') };
     if (authMode === 'register') body.ref = String(f.get('ref') || '').trim();
     const { user } = await api(authMode === 'login' ? '/api/login' : '/api/register', { method: 'POST', body });
     try { localStorage.removeItem('pawa_ref'); } catch { /* fine */ }
@@ -94,6 +98,7 @@ async function startApp() {
   $('#avatar').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg>';
   $('#menu-name').textContent = state.user.name;
   state.telegram = !!me.telegram; 
+  if (!state.user.hasPin) pinDialog(true); // accounts from before PINs must create one now
   await loadPosts();
   checkReturn();
 }
@@ -695,3 +700,33 @@ function trackPayView() { api('/api/track', { method: 'POST', body: { kind: 'pay
 function arenaTile() {
   return `<a class="arena-tile" href="arena.html"><span class="arena-ico" aria-hidden="true">🏁🎡</span><span class="arena-txt"><b>Arena Picks</b><small>Race and Spin games with free play coins. Daily bonus inside.</small></span><span class="get">Play<i aria-hidden="true">›</i></span></a>`;
 }
+
+
+// ---------- PIN: create (required for older accounts) or change ----------
+function pinDialog(force) {
+  let d = $('#pin-dlg'); if (d) d.remove();
+  d = document.createElement('dialog'); d.id = 'pin-dlg'; d.className = 'tg-dialog';
+  const has = state.user && state.user.hasPin;
+  d.innerHTML = `<form method="dialog" id="pin-form" novalidate><h2>${force ? 'Create your PIN' : 'Change your PIN'}</h2>
+    <p class="muted">${force ? 'PawaOdds now uses a PIN to log in so nobody else can open your account. Choose 4 to 6 digits and keep it private.' : 'Choose 4 to 6 digits.'}</p>
+    ${has ? '<label class="field">Current PIN<input name="current" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"></label>' : ''}
+    <label class="field">New PIN<input name="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" required></label>
+    <label class="field">Repeat new PIN<input name="again" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" required></label>
+    <p class="form-error" role="alert"></p>
+    <button class="btn-primary" type="submit">Save PIN</button>${force ? '' : ' <button type="button" class="link" id="pin-cancel">Cancel</button>'}</form>`;
+  document.body.appendChild(d);
+  d.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, '').slice(0, 6); }));
+  if (force) d.addEventListener('cancel', e => e.preventDefault());
+  const c = d.querySelector('#pin-cancel'); if (c) c.addEventListener('click', () => d.close());
+  d.querySelector('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = new FormData(e.target), err = d.querySelector('.form-error');
+    if (f.get('pin') !== f.get('again')) { err.textContent = 'The two PINs do not match'; return; }
+    try {
+      await api('/api/me/pin', { method: 'PUT', body: { current: f.get('current') || undefined, pin: f.get('pin') } });
+      state.user.hasPin = true; d.close(); d.remove(); toast && toast('PIN saved');
+    } catch (x) { err.textContent = x.message; }
+  });
+  d.showModal();
+}
+$('#pin-open').addEventListener('click', () => { $('#menu').hidden = true; pinDialog(false); });

@@ -110,6 +110,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone)');
 for (const [col, ddl] of [
   ['telegram_chat_id', 'TEXT'], ['telegram_link_code', 'TEXT'], ['telegram_link_at', 'TEXT'],
   ['notify_picks', 'INTEGER NOT NULL DEFAULT 1'], ['notify_codes', 'INTEGER NOT NULL DEFAULT 1'],
+  ['pin_hash', 'TEXT'], ['pin_fails', 'INTEGER NOT NULL DEFAULT 0'], ['pin_locked_until', 'TEXT'],
 ]) if (!userCols.includes(col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} ${ddl}`);
 
 // Every alert sent, so the same one is never sent twice (admin refreshes, restarts, re-saved codes).

@@ -5,6 +5,7 @@ const { normalizePhone } = require('../phone');
 const db = require('../db');
 const telegram = require('../telegram');
 const referrals = require('../referrals');
+const pins = require('../pin');
 const { BLOCKED_MSG, auth, limited, setUserSession, clearSession, USER_COOKIE, publicUser } = require('../middleware/auth');
 
 const router = express.Router();
@@ -21,10 +22,12 @@ router.post('/register', limited, (req, res) => {
   if (db.prepare('SELECT 1 FROM users WHERE phone = ?').get(phone)) return res.status(409).json({ error: 'That number already has an account. Tap Log in instead.' });
   // With ADMIN_PHONES set, only those numbers are admins; otherwise the very first account is.
   const isAdmin = config.adminPhones.includes(phone) || (!config.adminPhones.length && db.prepare('SELECT COUNT(*) c FROM users').get().c === 0);
+  try { pins.check(req.body && req.body.pin); } catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
   let referrer = null;
   try { referrer = referrals.resolve(req.body && req.body.ref); } catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
   const { lastInsertRowid } = db.prepare("INSERT INTO users (name, email, password_hash, phone, is_admin, referred_by) VALUES ('', ?, '', ?, ?, ?)")
     .run(phone + '@phone.local', phone, isAdmin ? 1 : 0, referrer);
+  pins.set(lastInsertRowid, req.body.pin);
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(lastInsertRowid);
   const token = setSession(res, user);
   res.json({ user: publicUser(user), token });
@@ -35,8 +38,20 @@ router.post('/login', limited, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
   if (!user) return res.status(404).json({ error: 'No account for that number yet. Tap Sign up to create one.' });
   if (user.blocked) return res.status(403).json({ error: BLOCKED_MSG, blocked: true });
+  // Accounts made before PINs existed (or reset by the admin) have none yet: they get in once and must create one straight away.
+  if (user.pin_hash) { try { pins.verify(user.id, req.body && req.body.pin); } catch (e) { return res.status(e.status || 401).json({ error: e.message }); } }
   const token = setSession(res, user);
   res.json({ user: publicUser(user), token });
+});
+
+// Create or change the PIN. Changing needs the current one.
+router.put('/me/pin', auth, limited, (req, res) => {
+  try {
+    const b = req.body || {};
+    if (pins.has(req.user.id)) pins.verify(req.user.id, b.current);
+    pins.set(req.user.id, b.pin);
+    res.json({ ok: true });
+  } catch (e) { res.status(e.status || 400).json({ error: e.message }); }
 });
 
 router.post('/logout', (req, res) => { clearSession(res, USER_COOKIE); res.json({ ok: true }); });

@@ -201,9 +201,17 @@ router.get('/overview', adminAuth, (req, res) => {
 });
 
 router.get('/users', adminAuth, (req, res) => {
-  res.json({ users: db.prepare(`SELECT id, phone, is_admin, blocked, premium_until, platform, created_at, telegram_chat_id IS NOT NULL AS telegram,
+  res.json({ users: db.prepare(`SELECT id, phone, is_admin, blocked, premium_until, platform, created_at, telegram_chat_id IS NOT NULL AS telegram, pin_hash IS NOT NULL AS has_pin,
       (SELECT COUNT(*) FROM user_picks p WHERE p.user_id = users.id) AS picks
     FROM users ORDER BY id DESC LIMIT 500`).all().map(u => ({ ...u, name: displayPhone(u.phone), is_admin: !!u.is_admin, blocked: !!u.blocked, premium_until: u.premium_until && new Date(u.premium_until) > new Date() ? u.premium_until : null, telegram: !!u.telegram })) });
+});
+// Forgot PIN: clears it, and the player makes a new one the next time they log in. Only do this once you are sure it is really them.
+router.post('/users/:id/reset-pin', adminAuth, (req, res) => {
+  const u = db.prepare('SELECT id, phone FROM users WHERE id = ?').get(Number(req.params.id));
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  require('../pin').reset(u.id);
+  settings.log(displayPhone(req.user.phone), `Reset the PIN of ${displayPhone(u.phone)}`);
+  res.json({ ok: true });
 });
 router.put('/users/:id/admin', adminAuth, (req, res) => {
   const id = Number(req.params.id);

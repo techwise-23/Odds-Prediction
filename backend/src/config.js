@@ -102,7 +102,6 @@ module.exports = {
     packs: String(env.ARENA_PACKS || '10,20,50,100').split(',').map(Number).filter(n => n >= 1).slice(0, 6), // pack prices in whole units
     dailyLimit: Number(env.ARENA_DAILY_LIMIT || 200),                // most a player can buy per day, in whole units
     welcomeCoins: Number(env.ARENA_WELCOME_COINS || 0),               // free coins on sign-up (default none). Free coins can be played but never converted to cash
-    dailyBonus: Number(env.ARENA_DAILY_BONUS || 5),
     // Cash-out (turning coins back into money). OFF unless ARENA_CASHOUT=on. Needs a gaming licence and a payment provider that allows payouts.
     cashout: {
       enabled: String(env.ARENA_CASHOUT || '').toLowerCase() === 'on',

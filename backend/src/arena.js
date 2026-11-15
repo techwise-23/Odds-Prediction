@@ -1,15 +1,13 @@
 // Arena Picks: the coin wallet and the games' results live on the server, so a coin can only be had by buying it,
-// claiming the daily bonus or winning it. Free coins (daily bonus) can be played but never cashed out.
+// or winning it. Free coins (only left over from the old sign-up gift and daily bonus) can be played but never cashed out.
 const crypto = require('crypto');
 const db = require('./db');
 const config = require('./config');
 const premium = require('./premium');
 
 const A = config.arena;
-const STAKES = [50, 100, 250, 500];
+const STAKES = [10, 20, 50, 100, 250, 500];
 const fail = (msg, status = 400) => Object.assign(new Error(msg), { status });
-const today = () => new Date().toISOString().slice(0, 10);
-const yesterday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 
 // ---- wallet
 const ensure = db.transaction(userId => {
@@ -58,11 +56,9 @@ function cashoutInfo(userId, w) {
 }
 
 function wallet(userId) {
-  const w = ensure(userId), can = w.bonus_day !== today();
-  const streak = w.bonus_day === yesterday() ? w.streak : w.bonus_day === today() ? w.streak : 0;
+  const w = ensure(userId);
   return {
     coins: w.coins, free: w.free, currency: config.paystack.currency, enabled: premium.enabled(),
-    bonus: { can, amount: A.dailyBonus, streak },
     packs: A.packs.map(price => ({ price, coins: Math.round(price * A.coinsPerUnit) })), coinsPerUnit: A.coinsPerUnit,
     limit: { daily: A.dailyLimit, left: Math.max(0, A.dailyLimit - boughtToday(userId)) },
     tx: db.prepare('SELECT kind, delta, note, created_at FROM arena_tx WHERE user_id = ? ORDER BY id DESC LIMIT 30').all(userId),
@@ -70,13 +66,6 @@ function wallet(userId) {
   };
 }
 
-const claimBonus = db.transaction(userId => {
-  const w = ensure(userId);
-  if (w.bonus_day === today()) throw fail('You already claimed today. Come back tomorrow.', 409);
-  const streak = w.bonus_day === yesterday() ? w.streak + 1 : 1;
-  db.prepare('UPDATE arena_wallets SET bonus_day = ?, streak = ?, free = free + ? WHERE user_id = ?').run(today(), streak, A.dailyBonus, userId);
-  return { coins: change(userId, A.dailyBonus, 'Daily bonus', `Day ${streak} streak`), streak };
-});
 
 // ---- games. The server draws the result; the page only animates it.
 const rint = n => crypto.randomInt(n);
@@ -276,4 +265,4 @@ const transferEvent = db.transaction((event, reference) => {
   else if ((event === 'transfer.failed' || event === 'transfer.reversed') && ['processing', 'paid'].includes(w.status)) refund(w, 'failed', 'The mobile money payout failed. Your cash was returned.');
 });
 
-module.exports = { saveKyc, convert, withdraw, listWithdrawals, approve, reject, markPaid, transferEvent, wallet, claimBonus, spin, race, leaders, buy, verify, reconcile, STAKES };
+module.exports = { saveKyc, convert, withdraw, listWithdrawals, approve, reject, markPaid, transferEvent, wallet, spin, race, leaders, buy, verify, reconcile, STAKES };

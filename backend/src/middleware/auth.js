@@ -78,6 +78,6 @@ function limited(req, res, next) {
 }
 
 function publicUser(u) { return { id: u.id, phone: u.phone, name: displayPhone(u.phone), isAdmin: !!u.is_admin, platform: u.platform || 'sportybet',
-  premium: !!(u.premium_until && new Date(u.premium_until) > new Date()), premiumUntil: u.premium_until && new Date(u.premium_until) > new Date() ? u.premium_until : null }; }
+  hasPin: !!u.pin_hash, premium: !!(u.premium_until && new Date(u.premium_until) > new Date()), premiumUntil: u.premium_until && new Date(u.premium_until) > new Date() ? u.premium_until : null }; }
 
 module.exports = { BLOCKED_MSG, USER_COOKIE, ADMIN_COOKIE, setUserSession, setAdminSession, clearSession, auth, authAny, adminAuth, limited, publicUser };

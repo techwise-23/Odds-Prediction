@@ -446,7 +446,7 @@ function renderUsers() {
       </div>
       ${u.id === state.user.id ? '<span class="muted-inline">You</span>'
         : `<div class="adm-user-btns"><span class="free-pick"><select data-free-days="${u.id}" aria-label="Free access for ${esc(u.name)}"><option value="">Free access…</option><option value="7">+7 days</option><option value="30">+30 days</option><option value="90">+90 days</option><option value="365">+1 year</option>${u.premium_until ? '<option value="0">Remove access</option>' : ''}</select></span>
-          ${u.is_admin ? '' : `<button class="add${u.blocked ? '' : ' danger'}" data-block-user="${u.id}" data-to="${u.blocked ? 0 : 1}">${u.blocked ? 'Unblock' : 'Block'}</button>`}<button class="add" data-make-admin="${u.id}" data-to="${u.is_admin ? 0 : 1}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button><button class="add danger" data-del-user="${u.id}">Delete</button></div>`}
+          ${u.is_admin ? '' : `<button class="add${u.blocked ? '' : ' danger'}" data-block-user="${u.id}" data-to="${u.blocked ? 0 : 1}">${u.blocked ? 'Unblock' : 'Block'}</button>`}<button class="add" data-make-admin="${u.id}" data-to="${u.is_admin ? 0 : 1}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button><button class="add" data-reset-pin="${u.id}">${u.has_pin ? 'Reset PIN' : 'No PIN yet'}</button><button class="add danger" data-del-user="${u.id}">Delete</button></div>`}
     </article>`).join('') : empty(usersCache.length ? 'No users match your search.' : 'No users yet.', ''));
 }
 $('#adm-search').addEventListener('input', renderUsers);
@@ -776,3 +776,11 @@ async function loadArena() {
   const players = d.players.length ? `<div class="wrap"><table><tr><th>Player</th><th>Coins</th><th>Bought</th><th>Played</th><th>Net</th></tr>${d.players.map(p => `<tr><td>${esc(p.phone)}</td><td>${n(p.coins)}</td><td>${n(p.bought)}</td><td>${n(p.wagered)}</td><td>${n(p.net)}</td></tr>`).join('')}</table></div>` : '<div class="empty">No players yet.</div>';
   box.innerHTML = `<h2 class="section-head">Arena Picks</h2>${stats}<h2 class="section-head">Withdrawals</h2>${wdList}<h2 class="section-head">Coin purchases</h2>${orders}<h2 class="section-head">Top players by coins played</h2>${players}`;
 }
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-reset-pin]'); if (!b) return;
+  const u = usersCache.find(x => x.id === +b.dataset.resetPin);
+  if (!u || !u.has_pin) { toast('This player has not set a PIN yet'); return; }
+  if (!confirm(`Reset the PIN of ${u.name}? Only do this if you are sure it is really them. They will log in with just their number and must then create a new PIN.`)) return;
+  try { await api(`/api/admin/users/${u.id}/reset-pin`, { method: 'POST' }); toast('PIN reset'); loadUsers(); } catch (x) { toast(x.message); }
+});

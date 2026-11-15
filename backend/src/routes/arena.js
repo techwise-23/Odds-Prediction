@@ -6,7 +6,6 @@ const router = express.Router();
 
 const run = fn => (req, res) => Promise.resolve().then(() => fn(req)).then(r => res.json(r)).catch(e => res.status(e.status || 500).json({ error: e.status ? e.message : 'Something went wrong' }));
 router.get('/arena/wallet', auth, run(req => arena.wallet(req.user.id)));
-router.post('/arena/bonus', auth, run(req => arena.claimBonus(req.user.id)));
 router.post('/arena/spin', auth, run(req => arena.spin(req.user.id, req.body && req.body.picks, req.body && req.body.stake)));
 router.post('/arena/race', auth, run(req => arena.race(req.user.id, req.body && req.body.pick, req.body && req.body.stake)));
 router.get('/arena/leaders', auth, run(req => ({ leaders: arena.leaders(req.user.id) })));
@@ -19,5 +18,5 @@ router.post('/arena/verify', auth, run(async req => {
 }));
 router.post('/arena/kyc', auth, limited, run(req => require('../arena').saveKyc(req.user.id, req.body || {})));
 router.post('/arena/convert', auth, run(req => require('../arena').convert(req.user.id, req.body && req.body.coins)));
-router.post('/arena/withdraw', auth, limited, run(req => require('../arena').withdraw(req.user, req.body && req.body.amount, String(req.body && req.body.network || ''))));
+router.post('/arena/withdraw', auth, limited, run(req => { require('../pin').verify(req.user.id, req.body && req.body.pin); return require('../arena').withdraw(req.user, req.body && req.body.amount, String(req.body && req.body.network || '')); }));
 module.exports = router;

@@ -46,12 +46,16 @@
             <input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567" required>
           </span>
         </label>
+        <label class="field" id="pin-field"><span id="pin-label">Choose a PIN <small>(4 to 6 digits)</small></span>
+          <input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="••••" required>
+        </label>
         <label class="field" id="ref-field">Referral code <small>(optional)</small>
           <input name="ref" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="20" placeholder="A friend's code or name">
         </label>
         <p class="form-error" role="alert"></p>
         <button class="btn-primary" type="submit">Sign up</button>
         <p class="auth-alt"><span id="auth-alt-text">Already have an account?</span> <button type="button" class="link" id="auth-alt">Log in</button></p>
+        <p class="fineprint" id="pin-help" hidden>Forgot your PIN? Message PawaOdds support and we will reset it for you.</p>
         <p class="fineprint">By continuing you confirm you are 18 or older. Betting is risky and you can lose.</p>
       </form>
 
@@ -85,6 +89,7 @@
       <div id="menu" class="menu" hidden>
         <p id="menu-name"></p><p class="menu-sub">Signed in with your phone number</p>
         <button id="tg-open">Alerts</button>
+        <button id="pin-open">Change PIN</button>
         <button id="logout">Log out</button>
       </div>
     </header>
